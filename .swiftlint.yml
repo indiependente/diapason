@@ -1,0 +1,29 @@
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - Diapason.xcodeproj
+  - DerivedData
+  - .build
+  - .swiftpm
+
+disabled_rules:
+  - trailing_whitespace
+  - line_length
+  - todo
+  - trailing_comma
+
+opt_in_rules:
+  - empty_count
+  - sorted_imports
+  - first_where
+  - last_where
+  - redundant_nil_coalescing
+  - closure_spacing
+  - explicit_init
+  - unused_import
+  - unused_declaration
+
+identifier_name:
+  min_length: 2
