@@ -5,7 +5,11 @@ struct MusicCollection: Identifiable, Hashable, Sendable, Decodable {
     enum Kind: String, Sendable, Decodable {
         case playlist = "Playlist"
         case album = "MusicAlbum"
+        /// Not a server item: the user's favorite songs.
+        case favorites = "Favorites"
     }
+
+    static let favorites = MusicCollection(id: "favorites", name: "Favorites", kind: .favorites)
 
     let id: String
     let name: String
@@ -39,6 +43,13 @@ struct MusicCollection: Identifiable, Hashable, Sendable, Decodable {
     }
 
     var subtitle: String {
-        artist ?? (kind == .playlist ? "Playlist" : "Album")
+        if let artist {
+            return artist
+        }
+        switch kind {
+        case .playlist: return "Playlist"
+        case .album: return "Album"
+        case .favorites: return "Songs you marked with a heart"
+        }
     }
 }

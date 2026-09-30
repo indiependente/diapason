@@ -2,8 +2,11 @@ import SwiftUI
 
 struct AlbumsView: View {
     @Environment(Library.self) private var library
+    @Environment(Navigation.self) private var navigation
+
     var body: some View {
-        NavigationStack {
+        @Bindable var navigation = navigation
+        NavigationStack(path: $navigation.albumsPath) {
             AlbumGrid(albums: library.albums)
                 .navigationTitle("Albums")
                 .navigationDestination(for: MusicCollection.self) { album in

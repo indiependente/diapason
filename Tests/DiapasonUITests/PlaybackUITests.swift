@@ -65,16 +65,33 @@ final class PlaybackUITests: XCTestCase {
         screenshot(app, name: "queue")
         app.checkBoxes["queueButton"].firstMatch.click()
 
+        pauseAndResume(app)
+        try skipToNext(app)
+        try await Task.sleep(for: .seconds(4))
+        search(app, for: "shelter", expecting: "Pale Shelter")
+        toggleFavorite(app)
+        // Quit like a person would, so the app gets to send its stop report.
+        app.typeKey("q", modifierFlags: .command)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
+    }
+
+    private func pauseAndResume(_ app: XCUIApplication) {
         app.buttons["playPauseButton"].click()
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Play")
         app.buttons["playPauseButton"].click()
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Pause")
-        try skipToNext(app)
-        try await Task.sleep(for: .seconds(4))
-        search(app, for: "shelter", expecting: "Pale Shelter")
-        // Quit like a person would, so the app gets to send its stop report.
-        app.typeKey("q", modifierFlags: .command)
-        XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
+    }
+
+    /// Hearts the playing song from the player bar, then removes the heart again.
+    private func toggleFavorite(_ app: XCUIApplication) {
+        let heart = app.buttons["favoriteButton"].firstMatch
+        XCTAssertTrue(heart.waitForExistence(timeout: 5), app.debugDescription)
+        let before = heart.label
+        heart.click()
+        let flipped = NSPredicate(format: "label != %@", before)
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: flipped, evaluatedWith: heart)], timeout: 3), .completed)
+        screenshot(app, name: "favorite")
+        heart.click()
     }
 
     /// Types into the sidebar search field and waits for a song result, then clears the search.

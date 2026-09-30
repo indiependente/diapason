@@ -2,8 +2,11 @@ import SwiftUI
 
 struct ArtistsView: View {
     @Environment(Library.self) private var library
+    @Environment(Navigation.self) private var navigation
+
     var body: some View {
-        NavigationStack {
+        @Bindable var navigation = navigation
+        NavigationStack(path: $navigation.artistsPath) {
             List(library.artists) { artist in
                 NavigationLink(value: artist) {
                     HStack(spacing: 12) {

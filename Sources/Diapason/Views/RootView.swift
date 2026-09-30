@@ -3,27 +3,31 @@ import SwiftUI
 struct RootView: View {
     @Environment(Library.self) private var library
     @Environment(Player.self) private var player
+    @Environment(Navigation.self) private var navigation
     let updater: UpdaterController
-    @State private var selection: SidebarItem? = .albums
     @AppStorage("showQueue") private var showQueue = false
     /// Always open with the sidebar visible instead of restoring a collapsed one.
     @State private var columns: NavigationSplitViewVisibility = .all
-    @State private var query = ""
 
     var body: some View {
+        @Bindable var navigation = navigation
         if library.isSignedIn {
             NavigationSplitView(columnVisibility: $columns) {
-                SidebarView(selection: $selection)
+                SidebarView(selection: $navigation.selection)
                     .navigationSplitViewColumnWidth(min: 200, ideal: 240)
             } detail: {
-                if !query.isEmpty {
-                    SearchView(query: query)
+                if !navigation.query.isEmpty {
+                    SearchView(query: navigation.query)
                 } else {
-                    switch selection {
+                    switch navigation.selection {
                     case .albums, .none:
                         AlbumsView()
                     case .artists:
                         ArtistsView()
+                    case .favorites:
+                        NavigationStack {
+                            TrackListView(collection: .favorites)
+                        }
                     case let .playlist(playlist):
                         NavigationStack {
                             TrackListView(collection: playlist)
@@ -31,7 +35,7 @@ struct RootView: View {
                     }
                 }
             }
-            .searchable(text: $query, placement: .sidebar, prompt: "Search songs, albums, artists")
+            .searchable(text: $navigation.query, placement: .sidebar, prompt: "Search songs, albums, artists")
             .inspector(isPresented: $showQueue) {
                 QueueView()
                     .inspectorColumnWidth(min: 260, ideal: 320, max: 480)

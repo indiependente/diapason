@@ -38,6 +38,8 @@ The `.xcodeproj` is generated and gitignored. Edit `project.yml`, then run `make
 
 - Sign in to a Jellyfin server. The session token is stored in `~/Library/Application Support/Diapason/credentials.json` with owner-only permissions. The Keychain is not used because an ad-hoc signed development build gets a new code signature on every rebuild, and the Keychain then asks for permission at every launch.
 - Browse albums, artists, and playlists, with artwork.
+- Favorites: heart a song in any list or in the player bar, and browse them under Favorites in the sidebar.
+- Go to Album and Go to Artist from any song's context menu, from the player bar, and from the Controls menu.
 - Search the whole library from the sidebar: songs come from the server, artists and albums from the loaded lists.
 - Play, pause, next, previous, seek, and volume. Double-click a track to play from there.
 - Shuffle and repeat (off, all, one). Both persist across launches.
@@ -79,7 +81,7 @@ Sources/Diapason/
   Jellyfin/   REST client, credentials, SecretStore, Library (server state)
   Player/     PlayQueue, Player (AVPlayer), NowPlaying (MediaPlayer bridge), RepeatMode
   Updates/    UpdaterController (Sparkle)
-  Models/     Track and MediaInfo, MusicCollection, Artist, SidebarItem
+  Models/     Track and MediaInfo, MusicCollection, Artist, SidebarItem, Navigation
   Views/      RootView, SidebarView, AlbumsView, ArtistsView, SearchView, TrackListView, QueueView, PlayerBar, SignInView, SettingsView
 Tests/DiapasonTests/     unit tests (Swift Testing, ViewInspector)
 Tests/DiapasonUITests/   XCUITest end-to-end flow

@@ -70,8 +70,7 @@ struct SearchView: View {
             }
             .contextMenu(forSelectionType: Track.ID.self) { ids in
                 Button("Play") { play(from: ids.first) }
-                Button("Play Next") { player.playNext(selected(ids)) }
-                Button("Add to Queue") { player.addToQueue(selected(ids)) }
+                TrackMenuItems(tracks: selected(ids))
             } primaryAction: { ids in
                 play(from: ids.first)
             }

@@ -8,11 +8,16 @@ struct TrackListView: View {
     @State private var selection: Set<Track.ID> = []
     @State private var errorMessage: String?
 
+    /// The Favorites list drops a song as soon as its heart is removed.
+    private var shownTracks: [Track] {
+        collection.kind == .favorites ? tracks.filter(library.isFavorite) : tracks
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
-            Table(tracks, selection: $selection) {
+            Table(shownTracks, selection: $selection) {
                 TableColumn("#") { track in
                     if player.current?.id == track.id {
                         Image(systemName: player.isPlaying ? "speaker.wave.2.fill" : "speaker.fill")
@@ -47,11 +52,14 @@ struct TrackListView: View {
                         .foregroundStyle(.secondary)
                 }
                 .width(56)
+                TableColumn("") { track in
+                    FavoriteButton(track: track)
+                }
+                .width(24)
             }
             .contextMenu(forSelectionType: Track.ID.self) { ids in
                 Button("Play") { play(from: ids.first) }
-                Button("Play Next") { player.playNext(selected(ids)) }
-                Button("Add to Queue") { player.addToQueue(selected(ids)) }
+                TrackMenuItems(tracks: selected(ids))
             } primaryAction: { ids in
                 play(from: ids.first)
             }
@@ -79,10 +87,22 @@ struct TrackListView: View {
 
     private var header: some View {
         HStack(alignment: .bottom, spacing: 20) {
-            Artwork(
-                url: library.artworkURL(for: collection.hasArtwork ? collection.id : nil, size: 400),
-                cornerRadius: 8
-            )
+            Group {
+                if collection.kind == .favorites {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 64))
+                            .foregroundStyle(Color.accentColor)
+                            .accessibilityHidden(true)
+                    }
+                } else {
+                    Artwork(
+                        url: library.artworkURL(for: collection.hasArtwork ? collection.id : nil, size: 400),
+                        cornerRadius: 8
+                    )
+                }
+            }
             .frame(width: 160, height: 160)
             .shadow(radius: 4, y: 2)
             VStack(alignment: .leading, spacing: 6) {
@@ -92,20 +112,20 @@ struct TrackListView: View {
                 Text(collection.subtitle)
                     .font(.title3)
                     .foregroundStyle(.secondary)
-                Text("\(tracks.count) songs, \(tracks.reduce(0) { $0 + $1.duration }.trackFormatted)")
+                Text("\(shownTracks.count) songs, \(shownTracks.reduce(0) { $0 + $1.duration }.trackFormatted)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack {
-                    Button("Play", systemImage: "play.fill") { player.play(tracks) }
+                    Button("Play", systemImage: "play.fill") { player.play(shownTracks) }
                         .buttonStyle(.borderedProminent)
                     Button("Shuffle", systemImage: "shuffle") {
                         player.isShuffled = true
-                        player.play(tracks)
+                        player.play(shownTracks)
                     }
                     .buttonStyle(.bordered)
                     Menu {
-                        Button("Play Next") { player.playNext(tracks) }
-                        Button("Add to Queue") { player.addToQueue(tracks) }
+                        Button("Play Next") { player.playNext(shownTracks) }
+                        Button("Add to Queue") { player.addToQueue(shownTracks) }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .accessibilityLabel("More")
@@ -113,7 +133,7 @@ struct TrackListView: View {
                     .menuStyle(.borderlessButton)
                     .fixedSize()
                 }
-                .disabled(tracks.isEmpty)
+                .disabled(shownTracks.isEmpty)
                 .padding(.top, 8)
             }
             Spacer()
@@ -123,13 +143,13 @@ struct TrackListView: View {
 
     /// The selected tracks in table order.
     private func selected(_ ids: Set<Track.ID>) -> [Track] {
-        tracks.filter { ids.contains($0.id) }
+        shownTracks.filter { ids.contains($0.id) }
     }
 
     private func play(from id: Track.ID?) {
-        guard let index = tracks.firstIndex(where: { $0.id == id }) else {
+        guard let index = shownTracks.firstIndex(where: { $0.id == id }) else {
             return
         }
-        player.play(tracks, from: index)
+        player.play(shownTracks, from: index)
     }
 }

@@ -6,6 +6,7 @@ struct DiapasonApp: App {
     @State private var library: Library
     @State private var player: Player
     @State private var updater = UpdaterController()
+    @State private var navigation = Navigation()
     @AppStorage("showQueue") private var showQueue = false
 
     init() {
@@ -42,6 +43,7 @@ struct DiapasonApp: App {
             RootView(updater: updater)
                 .environment(library)
                 .environment(player)
+                .environment(navigation)
                 // Sidebar, detail, and the Up Next panel do not fit in 900 points; the window grows instead of
                 // squeezing.
                 .frame(minWidth: showQueue ? 1220 : 900, minHeight: 600)
@@ -65,6 +67,18 @@ struct DiapasonApp: App {
                     .keyboardShortcut(".", modifiers: .command)
                     .disabled(player.current == nil)
                 Divider()
+                if let track = player.current {
+                    Button(library.isFavorite(track) ? "Remove from Favorites" : "Add to Favorites") {
+                        library.toggleFavorite(track)
+                    }
+                    if let album = library.album(for: track) {
+                        Button("Go to Album") { navigation.show(album: album) }
+                    }
+                    if let artist = library.artist(for: track) {
+                        Button("Go to Artist") { navigation.show(artist: artist) }
+                    }
+                    Divider()
+                }
                 Toggle("Shuffle", isOn: Binding(get: { player.isShuffled }, set: { player.isShuffled = $0 }))
                     .keyboardShortcut("s", modifiers: [.command, .shift])
                 Picker("Repeat", selection: Binding(get: { player.repeatMode }, set: { player.repeatMode = $0 })) {

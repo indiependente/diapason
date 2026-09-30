@@ -91,8 +91,29 @@ struct JellyfinClient: Sendable, Equatable {
         ])
     }
 
+    func favoriteTracks() async throws -> [Track] {
+        try await items([
+            "IncludeItemTypes": "Audio",
+            "Recursive": "true",
+            "Filters": "IsFavorite",
+            "SortBy": "SortName",
+            "Fields": "MediaSources"
+        ])
+    }
+
+    func setFavorite(_ trackID: String, _ favorite: Bool) async throws {
+        let request = try request(
+            "UserFavoriteItems/\(trackID)",
+            query: ["userId": userID ?? ""],
+            method: favorite ? "POST" : "DELETE"
+        )
+        _ = try await data(for: request)
+    }
+
     func tracks(in collection: MusicCollection) async throws -> [Track] {
         switch collection.kind {
+        case .favorites:
+            try await favoriteTracks()
         case .playlist:
             try await items(path: "Playlists/\(collection.id)/Items", ["Fields": "MediaSources"])
         case .album:

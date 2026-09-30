@@ -115,6 +115,29 @@ struct JellyfinClientTests {
         #expect(tracks.map(\.title) == ["Let It Happen"])
     }
 
+    @Test("favorites are filtered audio items, and the heart posts or deletes a user favorite")
+    func favorites() async throws {
+        StubURLProtocol.handler = { request in
+            let components = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }
+            let items = components?.queryItems ?? []
+            switch (request.httpMethod, components?.path) {
+            case ("GET", "/Items"):
+                #expect(items.contains(URLQueryItem(name: "Filters", value: "IsFavorite")))
+
+                return (200, Data(#"{"Items":[{"Id":"t1","Name":"Loved"}]}"#.utf8))
+            case ("POST", "/UserFavoriteItems/t1"), ("DELETE", "/UserFavoriteItems/t1"):
+                #expect(items.contains(URLQueryItem(name: "userId", value: "u1")))
+
+                return (200, Data("{}".utf8))
+            default:
+                return (404, Data())
+            }
+        }
+        #expect(try await client.favoriteTracks().map(\.id) == ["t1"])
+        try await client.setFavorite("t1", true)
+        try await client.setFavorite("t1", false)
+    }
+
     @Test("track queries ask for media sources")
     func tracksRequestMediaSources() async throws {
         StubURLProtocol.handler = { request in

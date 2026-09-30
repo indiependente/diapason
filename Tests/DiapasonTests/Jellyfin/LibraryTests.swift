@@ -40,6 +40,40 @@ struct LibraryTests {
         #expect(try store.data(for: Library.credentialsKey) == nil)
     }
 
+    @Test("toggleFavorite flips the heart at once and reverts when the server refuses")
+    func toggleFavorite() async throws {
+        StubURLProtocol.handler = { request in
+            request.url?.path().hasPrefix("/UserFavoriteItems") == true ? (500, Data()) : (
+                200,
+                Data(#"{"Items":[]}"#.utf8)
+            )
+        }
+        let store = InMemorySecretStore()
+        let stored = try Credentials(
+            server: #require(URL(string: "http://jelly.local")),
+            username: "me",
+            userID: "u1",
+            token: "tok"
+        )
+        try store.setJSON(stored, for: Library.credentialsKey)
+        let library = Library(store: store, deviceID: "dev", session: StubURLProtocol.session())
+        let track = Track(id: "t1", title: "Loved", artist: "x")
+        library.toggleFavorite(track)
+        #expect(library.isFavorite(track))
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(!library.isFavorite(track))
+        #expect(library.errorMessage != nil)
+    }
+
+    @Test("album(for:) and artist(for:) fall back to values built from the track")
+    func lookups() {
+        let library = Library(store: InMemorySecretStore(), deviceID: "dev")
+        let track = Track(id: "t1", title: "Song", artist: "Band", album: "Record", albumID: "a1", artistID: "ar1")
+        #expect(library.album(for: track) == MusicCollection(id: "a1", name: "Record", kind: .album, artist: "Band"))
+        #expect(library.artist(for: track) == Artist(id: "ar1", name: "Band"))
+        #expect(library.album(for: Track(id: "t2", title: "x", artist: "y")) == nil)
+    }
+
     @Test("rejects a server string without a host")
     func rejectsBadServer() async {
         let library = Library(store: InMemorySecretStore(), deviceID: "dev")

@@ -33,6 +33,7 @@ struct QueueView: View {
         .contextMenu(forSelectionType: PlayQueue.Entry.ID.self) { ids in
             Button("Play") { ids.first.map { player.jump(to: $0) } }
             Button("Remove from Queue") { remove(ids) }
+            TrackMenuItems(tracks: entries(ids).map(\.track), includesQueueing: false)
         } primaryAction: { ids in
             ids.first.map { player.jump(to: $0) }
         }
@@ -47,6 +48,10 @@ struct QueueView: View {
             }
         }
         .accessibilityIdentifier("queueList")
+    }
+
+    private func entries(_ ids: Set<PlayQueue.Entry.ID>) -> [PlayQueue.Entry] {
+        player.queue.entries.filter { ids.contains($0.id) }
     }
 
     private func remove(_ ids: Set<PlayQueue.Entry.ID>) {

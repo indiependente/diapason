@@ -12,6 +12,7 @@ final class Library {
     private(set) var playlists: [MusicCollection] = []
     private(set) var albums: [MusicCollection] = []
     private(set) var artists: [Artist] = []
+    private(set) var favoriteIDs: Set<Track.ID> = []
     private(set) var isLoading = false
     var errorMessage: String?
 
@@ -61,6 +62,7 @@ final class Library {
         playlists = []
         albums = []
         artists = []
+        favoriteIDs = []
     }
 
     func refresh() async {
@@ -73,7 +75,9 @@ final class Library {
             async let playlists = client.playlists()
             async let albums = client.albums()
             async let artists = client.artists()
+            async let favorites = client.favoriteTracks()
             (self.playlists, self.albums, self.artists) = try await (playlists, albums, artists)
+            favoriteIDs = try await Set(favorites.map(\.id))
             errorMessage = nil
         } catch JellyfinError.unauthorized {
             signOut()
@@ -102,8 +106,64 @@ final class Library {
         guard let client else {
             throw JellyfinError.notSignedIn
         }
+        let tracks = try await client.tracks(in: collection)
+        if collection.kind == .favorites {
+            favoriteIDs = Set(tracks.map(\.id))
+        }
 
-        return try await client.tracks(in: collection)
+        return tracks
+    }
+
+    func isFavorite(_ track: Track) -> Bool {
+        favoriteIDs.contains(track.id)
+    }
+
+    /// Flips the heart at once and tells the server; a failed request flips it back.
+    func toggleFavorite(_ track: Track) {
+        guard let client else {
+            return
+        }
+        let favorite = !favoriteIDs.contains(track.id)
+        if favorite {
+            favoriteIDs.insert(track.id)
+        } else {
+            favoriteIDs.remove(track.id)
+        }
+        Task {
+            do {
+                try await client.setFavorite(track.id, favorite)
+            } catch {
+                if favorite {
+                    favoriteIDs.remove(track.id)
+                } else {
+                    favoriteIDs.insert(track.id)
+                }
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    /// The loaded album when it is known, else one built from the track so navigation still works.
+    func album(for track: Track) -> MusicCollection? {
+        guard let albumID = track.albumID else {
+            return nil
+        }
+
+        return albums.first { $0.id == albumID } ?? MusicCollection(
+            id: albumID,
+            name: track.album,
+            kind: .album,
+            artist: track.artist,
+            hasArtwork: track.artworkItemID == albumID
+        )
+    }
+
+    func artist(for track: Track) -> Artist? {
+        guard let artistID = track.artistID else {
+            return nil
+        }
+
+        return artists.first { $0.id == artistID } ?? Artist(id: artistID, name: track.artist)
     }
 
     func artworkURL(for itemID: String?, size: Int) -> URL? {

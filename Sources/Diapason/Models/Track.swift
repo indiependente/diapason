@@ -10,6 +10,8 @@ struct Track: Identifiable, Hashable, Sendable, Decodable {
     let artist: String
     let album: String
     let albumID: String?
+    /// The album artist when the server has one, else the first track artist.
+    let artistID: String?
     let trackNumber: Int?
     let duration: TimeInterval
     /// The item that has the primary image: the track itself, or its album.
@@ -17,7 +19,8 @@ struct Track: Identifiable, Hashable, Sendable, Decodable {
     let media: MediaInfo?
 
     private enum CodingKeys: CodingKey {
-        case id, name, artists, album, albumId, indexNumber, runTimeTicks, imageTags, albumPrimaryImageTag, mediaSources
+        case id, name, artists, album, albumId, albumArtists, artistItems, indexNumber, runTimeTicks, imageTags
+        case albumPrimaryImageTag, mediaSources
     }
 
     init(
@@ -26,6 +29,7 @@ struct Track: Identifiable, Hashable, Sendable, Decodable {
         artist: String,
         album: String = "",
         albumID: String? = nil,
+        artistID: String? = nil,
         trackNumber: Int? = nil,
         duration: TimeInterval = 0,
         artworkItemID: String? = nil,
@@ -36,6 +40,7 @@ struct Track: Identifiable, Hashable, Sendable, Decodable {
         self.artist = artist
         self.album = album
         self.albumID = albumID
+        self.artistID = artistID
         self.trackNumber = trackNumber
         self.duration = duration
         self.artworkItemID = artworkItemID
@@ -49,6 +54,9 @@ struct Track: Identifiable, Hashable, Sendable, Decodable {
         artist = try container.decodeIfPresent([String].self, forKey: .artists)?.joined(separator: ", ") ?? ""
         album = try container.decodeIfPresent(String.self, forKey: .album) ?? ""
         albumID = try container.decodeIfPresent(String.self, forKey: .albumId)
+        let albumArtists = try container.decodeIfPresent([NamedItem].self, forKey: .albumArtists) ?? []
+        let artistItems = try container.decodeIfPresent([NamedItem].self, forKey: .artistItems) ?? []
+        artistID = (albumArtists.first ?? artistItems.first)?.id
         trackNumber = try container.decodeIfPresent(Int.self, forKey: .indexNumber)
         let ticks = try container.decodeIfPresent(Double.self, forKey: .runTimeTicks) ?? 0
         duration = ticks / Self.ticksPerSecond
@@ -113,6 +121,11 @@ struct MediaInfo: Hashable, Sendable {
     var summary: String {
         [format, kbps.map { "\($0) kbps" }].compactMap(\.self).joined(separator: " · ")
     }
+}
+
+private struct NamedItem: Decodable {
+    let id: String
+    let name: String
 }
 
 private struct MediaSource: Decodable {

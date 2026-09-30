@@ -87,10 +87,14 @@ struct PlayerBar: View {
                 }
                 .frame(width: 48, height: 48)
                 VStack(spacing: 2) {
-                    Text(track.title)
-                        .font(.callout.weight(.medium))
-                        .lineLimit(1)
-                        .accessibilityIdentifier("nowPlayingTitle")
+                    HStack(spacing: 6) {
+                        Text(track.title)
+                            .font(.callout.weight(.medium))
+                            .lineLimit(1)
+                            .accessibilityIdentifier("nowPlayingTitle")
+                        FavoriteButton(track: track)
+                            .accessibilityIdentifier("favoriteButton")
+                    }
                     Text([track.artist, track.album, track.media?.summary ?? ""].filter { !$0.isEmpty }
                         .joined(separator: "  ·  "))
                         .font(.caption)
@@ -117,6 +121,9 @@ struct PlayerBar: View {
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
                 }
+            }
+            .contextMenu {
+                TrackMenuItems(tracks: [track], includesQueueing: false)
             }
         } else {
             Text("Not playing")

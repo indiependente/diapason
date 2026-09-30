@@ -12,6 +12,8 @@ struct SidebarView: View {
                     .tag(SidebarItem.albums)
                 Label("Artists", systemImage: "music.microphone")
                     .tag(SidebarItem.artists)
+                Label("Favorites", systemImage: "heart")
+                    .tag(SidebarItem.favorites)
             }
             Section("Playlists") {
                 ForEach(library.playlists) { playlist in

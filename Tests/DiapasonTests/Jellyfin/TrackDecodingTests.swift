@@ -6,6 +6,7 @@ import Testing
 struct TrackDecodingTests {
     static let playlistItem = """
     {"Id":"t1","Name":"Ladies Room","Artists":["Olivia Dean","Someone"],"Album":"Messy","AlbumId":"a1",
+     "ArtistItems":[{"Name":"Olivia Dean","Id":"ar1"}],"AlbumArtists":[{"Name":"Olivia Dean","Id":"ar2"}],
      "IndexNumber":3,"RunTimeTicks":2203722290,"ImageTags":{"Primary":"x"},"AlbumPrimaryImageTag":"y","Type":"Audio",
      "MediaSources":[{"Container":"flac","Bitrate":2746914,"MediaStreams":[
         {"Type":"Audio","Codec":"flac","BitRate":2746914,"SampleRate":96000,"Channels":2,"BitDepth":24},
@@ -25,6 +26,7 @@ struct TrackDecodingTests {
         #expect(track.artist == "Olivia Dean, Someone")
         #expect(track.album == "Messy")
         #expect(track.trackNumber == 3)
+        #expect(track.artistID == "ar2")
         #expect(abs(track.duration - 220.372) < 0.001)
         #expect(track.artworkItemID == "t1")
     }
@@ -48,6 +50,7 @@ struct TrackDecodingTests {
     func fallsBackToAlbumArtwork() throws {
         let track = try JSONDecoder.jellyfin.decode(Track.self, from: Data(Self.albumChild.utf8))
         #expect(track.artworkItemID == "a2")
+        #expect(track.artistID == nil)
     }
 
     @Test("decodes a collection")
