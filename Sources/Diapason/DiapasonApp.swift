@@ -8,11 +8,9 @@ struct DiapasonApp: App {
     @AppStorage("showQueue") private var showQueue = false
 
     init() {
-        // The ad-hoc signed test host would trigger a Keychain access prompt on every rebuild.
-        let keychain: any KeychainStore = ProcessInfo.isRunningTests()
-            ? InMemoryKeychainStore()
-            : LiveKeychainStore(service: "com.indiependente.Diapason")
-        let library = Library(keychain: keychain)
+        // The unit test host must not pick up the real session and start talking to the server.
+        let store: any SecretStore = ProcessInfo.isRunningTests() ? InMemorySecretStore() : FileSecretStore.default
+        let library = Library(store: store)
         _library = State(initialValue: library)
         _player = State(initialValue: Player(library: library))
     }

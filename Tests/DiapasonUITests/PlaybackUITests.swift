@@ -16,7 +16,7 @@ final class PlaybackUITests: XCTestCase {
         else {
             throw XCTSkip("Set DIAPASON_TEST_SERVER, DIAPASON_TEST_USER and DIAPASON_TEST_PASSWORD.")
         }
-        resetKeychain()
+        resetStoredSession()
         let app = XCUIApplication()
         app.launch()
 
@@ -102,13 +102,8 @@ final class PlaybackUITests: XCTestCase {
     }
 
     /// Forces the sign-in screen so the test covers the whole flow.
-    private func resetKeychain() {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-        process.arguments = ["delete-generic-password", "-s", "com.indiependente.Diapason", "-a", "credentials"]
-        process.standardError = nil
-        process.standardOutput = nil
-        try? process.run()
-        process.waitUntilExit()
+    private func resetStoredSession() {
+        let file = URL.applicationSupportDirectory.appending(path: "Diapason/credentials.json")
+        try? FileManager.default.removeItem(at: file)
     }
 }

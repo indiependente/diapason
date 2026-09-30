@@ -5,17 +5,17 @@ import Testing
 @Suite("Library", .serialized)
 @MainActor
 struct LibraryTests {
-    @Test("restores a stored session from the keychain")
+    @Test("restores a stored session")
     func restoresSession() throws {
-        let keychain = InMemoryKeychainStore()
+        let store = InMemorySecretStore()
         let stored = try Credentials(
             server: #require(URL(string: "http://jelly.local")),
             username: "me",
             userID: "u1",
             token: "tok"
         )
-        try keychain.setJSON(stored, for: Library.credentialsKey)
-        let library = Library(keychain: keychain, deviceID: "dev")
+        try store.setJSON(stored, for: Library.credentialsKey)
+        let library = Library(store: store, deviceID: "dev")
         #expect(library.isSignedIn)
         #expect(library.credentials == stored)
     }
@@ -28,21 +28,21 @@ struct LibraryTests {
             default: (200, Data(#"{"Items":[]}"#.utf8))
             }
         }
-        let keychain = InMemoryKeychainStore()
-        let library = Library(keychain: keychain, deviceID: "dev", session: StubURLProtocol.session())
+        let store = InMemorySecretStore()
+        let library = Library(store: store, deviceID: "dev", session: StubURLProtocol.session())
         await library.signIn(server: "http://jelly.local", username: "me", password: "pw")
         #expect(library.isSignedIn)
         #expect(library.errorMessage == nil)
-        #expect(try keychain.json(Credentials.self, for: Library.credentialsKey)?.token == "tok")
+        #expect(try store.json(Credentials.self, for: Library.credentialsKey)?.token == "tok")
 
         library.signOut()
         #expect(!library.isSignedIn)
-        #expect(try keychain.data(for: Library.credentialsKey) == nil)
+        #expect(try store.data(for: Library.credentialsKey) == nil)
     }
 
     @Test("rejects a server string without a host")
     func rejectsBadServer() async {
-        let library = Library(keychain: InMemoryKeychainStore(), deviceID: "dev")
+        let library = Library(store: InMemorySecretStore(), deviceID: "dev")
         await library.signIn(server: "not a url", username: "me", password: "pw")
         #expect(!library.isSignedIn)
         #expect(library.errorMessage == JellyfinError.invalidURL.localizedDescription)
@@ -51,15 +51,15 @@ struct LibraryTests {
     @Test("a rejected token signs the user out on refresh")
     func staleTokenSignsOut() async throws {
         StubURLProtocol.handler = { _ in (401, Data()) }
-        let keychain = InMemoryKeychainStore()
+        let store = InMemorySecretStore()
         let stored = try Credentials(
             server: #require(URL(string: "http://jelly.local")),
             username: "me",
             userID: "u1",
             token: "old"
         )
-        try keychain.setJSON(stored, for: Library.credentialsKey)
-        let library = Library(keychain: keychain, deviceID: "dev", session: StubURLProtocol.session())
+        try store.setJSON(stored, for: Library.credentialsKey)
+        let library = Library(store: store, deviceID: "dev", session: StubURLProtocol.session())
         await library.refresh()
         #expect(!library.isSignedIn)
     }

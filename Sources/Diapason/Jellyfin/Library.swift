@@ -15,15 +15,15 @@ final class Library {
     private(set) var isLoading = false
     var errorMessage: String?
 
-    private let keychain: any KeychainStore
+    private let store: any SecretStore
     private let deviceID: String
     private let session: URLSession
 
-    init(keychain: any KeychainStore, deviceID: String = Library.persistentDeviceID(), session: URLSession = .shared) {
-        self.keychain = keychain
+    init(store: any SecretStore, deviceID: String = Library.persistentDeviceID(), session: URLSession = .shared) {
+        self.store = store
         self.deviceID = deviceID
         self.session = session
-        if let stored = try? keychain.json(Credentials.self, for: Self.credentialsKey) {
+        if let stored = try? store.json(Credentials.self, for: Self.credentialsKey) {
             credentials = stored
             client = JellyfinClient(credentials: stored, deviceID: deviceID, session: session)
         }
@@ -44,7 +44,7 @@ final class Library {
         do {
             let anonymous = JellyfinClient(server: url, deviceID: deviceID, session: session)
             let stored = try await anonymous.authenticate(username: username, password: password)
-            try keychain.setJSON(stored, for: Self.credentialsKey)
+            try store.setJSON(stored, for: Self.credentialsKey)
             credentials = stored
             client = JellyfinClient(credentials: stored, deviceID: deviceID, session: session)
             errorMessage = nil
@@ -55,7 +55,7 @@ final class Library {
     }
 
     func signOut() {
-        try? keychain.delete(key: Self.credentialsKey)
+        try? store.delete(key: Self.credentialsKey)
         credentials = nil
         client = nil
         playlists = []

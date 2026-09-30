@@ -36,7 +36,7 @@ The `.xcodeproj` is generated and gitignored. Edit `project.yml`, then run `make
 
 ## Features
 
-- Sign in to a Jellyfin server. The token is stored in the macOS Keychain.
+- Sign in to a Jellyfin server. The session token is stored in `~/Library/Application Support/Diapason/credentials.json` with owner-only permissions. The Keychain is not used because an ad-hoc signed development build gets a new code signature on every rebuild, and the Keychain then asks for permission at every launch.
 - Browse albums, artists, and playlists, with artwork and search.
 - Play, pause, next, previous, seek, and volume. Double-click a track to play from there.
 - Shuffle and repeat (off, all, one). Both persist across launches.
@@ -75,7 +75,7 @@ Updates come from Sparkle. The app checks `SUFeedURL` from `project.yml`, which 
 
 ```
 Sources/Diapason/
-  Jellyfin/   REST client, credentials, Keychain, Library (server state)
+  Jellyfin/   REST client, credentials, SecretStore, Library (server state)
   Player/     PlayQueue, Player (AVPlayer), NowPlaying (MediaPlayer bridge), RepeatMode
   Updates/    UpdaterController (Sparkle)
   Models/     Track and MediaInfo, MusicCollection, Artist, SidebarItem

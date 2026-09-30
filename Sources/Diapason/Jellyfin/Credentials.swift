@@ -1,6 +1,6 @@
 import Foundation
 
-/// A signed-in Jellyfin user. Stored in the Keychain.
+/// A signed-in Jellyfin user. Stored by a `SecretStore`.
 struct Credentials: Codable, Equatable, Sendable {
     let server: URL
     let username: String
