@@ -99,6 +99,22 @@ struct JellyfinClientTests {
         #expect(albums.map(\.id) == ["a1"])
     }
 
+    @Test("searchTracks queries audio items by term with media sources")
+    func searchTracks() async throws {
+        StubURLProtocol.handler = { request in
+            let components = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }
+            let items = components?.queryItems ?? []
+            #expect(components?.path == "/Items")
+            #expect(items.contains(URLQueryItem(name: "SearchTerm", value: "let it")))
+            #expect(items.contains(URLQueryItem(name: "IncludeItemTypes", value: "Audio")))
+            #expect(items.contains(URLQueryItem(name: "Fields", value: "MediaSources")))
+
+            return (200, Data(#"{"Items":[{"Id":"t1","Name":"Let It Happen"}]}"#.utf8))
+        }
+        let tracks = try await client.searchTracks("let it")
+        #expect(tracks.map(\.title) == ["Let It Happen"])
+    }
+
     @Test("track queries ask for media sources")
     func tracksRequestMediaSources() async throws {
         StubURLProtocol.handler = { request in

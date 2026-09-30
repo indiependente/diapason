@@ -71,9 +71,22 @@ final class PlaybackUITests: XCTestCase {
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Pause")
         try skipToNext(app)
         try await Task.sleep(for: .seconds(4))
+        search(app, for: "shelter", expecting: "Pale Shelter")
         // Quit like a person would, so the app gets to send its stop report.
         app.typeKey("q", modifierFlags: .command)
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
+    }
+
+    /// Types into the sidebar search field and waits for a song result, then clears the search.
+    private func search(_ app: XCUIApplication, for term: String, expecting title: String) {
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5), app.debugDescription)
+        field.click()
+        paste(term, into: field)
+        XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 10), app.debugDescription)
+        screenshot(app, name: "search")
+        field.typeKey("a", modifierFlags: .command)
+        field.typeKey(.delete, modifierFlags: [])
     }
 
     /// The next track is buffered ahead, so the title must change almost at once.

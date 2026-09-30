@@ -90,6 +90,14 @@ final class Library {
         return try await client.albums(by: artist)
     }
 
+    func searchTracks(_ term: String) async throws -> [Track] {
+        guard let client else {
+            throw JellyfinError.notSignedIn
+        }
+
+        return try await client.searchTracks(term)
+    }
+
     func tracks(in collection: MusicCollection) async throws -> [Track] {
         guard let client else {
             throw JellyfinError.notSignedIn

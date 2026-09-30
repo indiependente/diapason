@@ -80,6 +80,17 @@ struct JellyfinClient: Sendable, Equatable {
         ])
     }
 
+    /// Songs whose title matches the term, across the whole library.
+    func searchTracks(_ term: String, limit: Int = 100) async throws -> [Track] {
+        try await items([
+            "IncludeItemTypes": "Audio",
+            "Recursive": "true",
+            "SearchTerm": term,
+            "Limit": "\(limit)",
+            "Fields": "MediaSources"
+        ])
+    }
+
     func tracks(in collection: MusicCollection) async throws -> [Track] {
         switch collection.kind {
         case .playlist:

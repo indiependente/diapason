@@ -8,6 +8,7 @@ struct RootView: View {
     @AppStorage("showQueue") private var showQueue = false
     /// Always open with the sidebar visible instead of restoring a collapsed one.
     @State private var columns: NavigationSplitViewVisibility = .all
+    @State private var query = ""
 
     var body: some View {
         if library.isSignedIn {
@@ -15,17 +16,22 @@ struct RootView: View {
                 SidebarView(selection: $selection)
                     .navigationSplitViewColumnWidth(min: 200, ideal: 240)
             } detail: {
-                switch selection {
-                case .albums, .none:
-                    AlbumsView()
-                case .artists:
-                    ArtistsView()
-                case let .playlist(playlist):
-                    NavigationStack {
-                        TrackListView(collection: playlist)
+                if !query.isEmpty {
+                    SearchView(query: query)
+                } else {
+                    switch selection {
+                    case .albums, .none:
+                        AlbumsView()
+                    case .artists:
+                        ArtistsView()
+                    case let .playlist(playlist):
+                        NavigationStack {
+                            TrackListView(collection: playlist)
+                        }
                     }
                 }
             }
+            .searchable(text: $query, placement: .sidebar, prompt: "Search songs, albums, artists")
             .inspector(isPresented: $showQueue) {
                 QueueView()
                     .inspectorColumnWidth(min: 260, ideal: 320, max: 480)

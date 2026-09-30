@@ -2,22 +2,9 @@ import SwiftUI
 
 struct AlbumsView: View {
     @Environment(Library.self) private var library
-    @State private var query = ""
-
-    private var albums: [MusicCollection] {
-        guard !query.isEmpty else {
-            return library.albums
-        }
-
-        return library.albums.filter {
-            $0.name.localizedCaseInsensitiveContains(query) || $0.artist?
-                .localizedCaseInsensitiveContains(query) == true
-        }
-    }
-
     var body: some View {
         NavigationStack {
-            AlbumGrid(albums: albums)
+            AlbumGrid(albums: library.albums)
                 .navigationTitle("Albums")
                 .navigationDestination(for: MusicCollection.self) { album in
                     TrackListView(collection: album)
@@ -28,7 +15,6 @@ struct AlbumsView: View {
                     }
                 }
         }
-        .searchable(text: $query, placement: .toolbar, prompt: "Albums or artists")
     }
 }
 

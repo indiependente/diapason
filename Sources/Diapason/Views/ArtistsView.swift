@@ -2,19 +2,9 @@ import SwiftUI
 
 struct ArtistsView: View {
     @Environment(Library.self) private var library
-    @State private var query = ""
-
-    private var artists: [Artist] {
-        guard !query.isEmpty else {
-            return library.artists
-        }
-
-        return library.artists.filter { $0.name.localizedCaseInsensitiveContains(query) }
-    }
-
     var body: some View {
         NavigationStack {
-            List(artists) { artist in
+            List(library.artists) { artist in
                 NavigationLink(value: artist) {
                     HStack(spacing: 12) {
                         Artwork(
@@ -35,7 +25,6 @@ struct ArtistsView: View {
                 TrackListView(collection: album)
             }
         }
-        .searchable(text: $query, placement: .toolbar, prompt: "Artists")
     }
 }
 
