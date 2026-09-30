@@ -67,13 +67,21 @@ Without these variables the test is skipped. The test launches the app with `-Di
 
 ## Releases
 
-Updates come from Sparkle. The app checks `SUFeedURL` from `project.yml`, which points at the latest GitHub release. Until `SUPublicEDKey` is set, the updater stays off and "Check for Updates…" is disabled.
+Push a version tag. The Release workflow runs the unit tests, builds `Diapason-<version>.dmg` with that version and the run number as the build number, and publishes a GitHub release with the DMG attached.
 
-1. Install the Sparkle tools once: `brew install --cask sparkle`.
-2. Run `generate_keys` once. It stores the private key in your login Keychain and prints the public key. Put the public key in `SUPublicEDKey` in `project.yml`, then run `make gen`.
-3. Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`.
-4. Run `make release`. It archives, exports, builds `build/Diapason.dmg`, and writes `build/appcast.xml`. A Developer ID certificate is needed for `make dmg`; use `make dmg-unsigned` for a personal build.
-5. Create a GitHub release and upload the DMG and `appcast.xml` as assets.
+```sh
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+Updates come from Sparkle, which reads `appcast.xml` from the latest GitHub release. Set this up once:
+
+1. Install the Sparkle tools: `brew install --cask sparkle`.
+2. Run `generate_keys`. It stores the private key in your login Keychain and prints the public key.
+3. Put the public key in `SUPublicEDKey` in `project.yml`, then commit it. Until this key is set, the updater stays off and "Check for Updates…" is disabled.
+4. Run `generate_keys -x sparkle-key.txt` and save the file content as the `SPARKLE_ED_PRIVATE_KEY` repository secret. Then delete the file. Without this secret, releases have no `appcast.xml`.
+
+The DMG is ad-hoc signed, not notarized, because the project has no Developer ID certificate. The release notes tell users how to clear the quarantine flag. `make dmg` builds a Developer ID signed DMG locally once a certificate and a team are set up.
 
 ## Layout
 

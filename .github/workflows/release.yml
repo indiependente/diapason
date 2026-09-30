@@ -1,0 +1,81 @@
+name: Release
+
+# Push a tag like v1.2.0 to publish a release:
+#   git tag v1.2.0 && git push origin v1.2.0
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  # Keep in step with the Sparkle package version in project.yml.
+  SPARKLE_VERSION: "2.9.2"
+
+jobs:
+  release:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tooling
+        run: brew install xcodegen xcbeautify
+
+      - name: Version from tag
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag must look like v1.2.3, got $GITHUB_REF_NAME"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Unit tests
+        run: make test
+
+      # The build number is the run number: it only grows, which is what Sparkle compares.
+      - name: Build DMG
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD: ${{ github.run_number }}
+        run: |
+          make dmg-unsigned XCODEBUILD_FLAGS="MARKETING_VERSION=$VERSION CURRENT_PROJECT_VERSION=$BUILD"
+          mkdir -p build/release
+          mv build/Diapason-unsigned.dmg "build/release/Diapason-$VERSION.dmg"
+
+      # Needs the SPARKLE_ED_PRIVATE_KEY secret: the output of `generate_keys -x key.txt`.
+      - name: Sparkle appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SPARKLE_ED_PRIVATE_KEY" ]; then
+            echo "::warning::SPARKLE_ED_PRIVATE_KEY is not set, so the release has no appcast.xml."
+            exit 0
+          fi
+          curl -sSfL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz" \
+            | tar xJ -C "$RUNNER_TEMP" bin/generate_appcast
+          # ponytail: the appcast lists only this release; merge in the previous appcast if older clients need deltas.
+          echo "$SPARKLE_ED_PRIVATE_KEY" | "$RUNNER_TEMP/bin/generate_appcast" \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/" \
+            build/release
+          # generate_appcast skips the signature when the key does not match SUPublicEDKey in the app,
+          # and clients reject an unsigned update, so stop here instead of shipping a broken appcast.
+          if ! grep -q 'sparkle:edSignature' build/release/appcast.xml; then
+            echo "::error::appcast.xml is unsigned. Set SUPublicEDKey in project.yml to the public half of SPARKLE_ED_PRIVATE_KEY."
+            exit 1
+          fi
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          assets=("build/release/Diapason-$VERSION.dmg")
+          [ -f build/release/appcast.xml ] && assets+=(build/release/appcast.xml)
+          gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+            --title "Diapason $VERSION" \
+            --generate-notes \
+            --notes "This build is not notarized. After you copy Diapason to Applications, run \`xattr -dr com.apple.quarantine /Applications/Diapason.app\` once, or allow it in System Settings, Privacy & Security."

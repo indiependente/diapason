@@ -10,6 +10,8 @@ ARCHIVE_APP := $(ARCHIVE_PATH)/Products/Applications/$(SCHEME).app
 EXPORT_DIR := build/Export
 DMG_PATH := build/Diapason.dmg
 UNSIGNED_DMG_PATH := build/Diapason-unsigned.dmg
+# Extra build settings for archive, for example: make dmg-unsigned XCODEBUILD_FLAGS="MARKETING_VERSION=1.2.0"
+XCODEBUILD_FLAGS ?=
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister
 
 .PHONY: gen build run test test-e2e lint format clean icons install archive export dmg dmg-unsigned appcast release
@@ -87,6 +89,7 @@ archive: gen
 		-scheme $(SCHEME) \
 		-destination '$(DESTINATION)' \
 		-archivePath $(ARCHIVE_PATH) \
+		$(XCODEBUILD_FLAGS) \
 		| xcbeautify
 
 export: archive

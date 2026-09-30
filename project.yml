@@ -54,7 +54,7 @@ targets:
         # Sparkle. The EdDSA public key comes from `generate_keys`; see README "Releases".
         SUFeedURL: https://github.com/indiependente/diapason/releases/latest/download/appcast.xml
         SUEnableAutomaticChecks: true
-        SUPublicEDKey: ""
+        SUPublicEDKey: "2oj61wgbz63xMWVBq6sj1HhcsYTE9VcYa5FAqxAnSWo="
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.indiependente.Diapason
