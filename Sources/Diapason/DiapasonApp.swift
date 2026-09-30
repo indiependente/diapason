@@ -8,8 +8,10 @@ struct DiapasonApp: App {
     @AppStorage("showQueue") private var showQueue = false
 
     init() {
-        // The unit test host must not pick up the real session and start talking to the server.
-        let store: any SecretStore = ProcessInfo.isRunningTests() ? InMemorySecretStore() : FileSecretStore.default
+        // Tests must not pick up the real session: the unit test host would start talking to the
+        // server, and the UI test needs the sign-in screen without touching the stored session.
+        let fresh = ProcessInfo.isRunningTests() || CommandLine.arguments.contains("-DiapasonFreshSession")
+        let store: any SecretStore = fresh ? InMemorySecretStore() : FileSecretStore.default
         let library = Library(store: store)
         _library = State(initialValue: library)
         _player = State(initialValue: Player(library: library))
@@ -50,7 +52,7 @@ struct DiapasonApp: App {
                 }
             }
             CommandGroup(after: .toolbar) {
-                Toggle("Show Up Next", isOn: $showQueue)
+                Toggle("Show Up Next", isOn: $showQueue.animated)
                     .keyboardShortcut("u", modifiers: [.command, .shift])
                 Button("Refresh Library") { Task { await library.refresh() } }
                     .keyboardShortcut("r", modifiers: .command)

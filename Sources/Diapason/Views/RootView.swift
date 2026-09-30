@@ -32,7 +32,7 @@ struct RootView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Toggle(isOn: $showQueue) {
+                    Toggle(isOn: $showQueue.animated) {
                         Label("Up Next", systemImage: "list.bullet")
                     }
                     .accessibilityIdentifier("queueButton")
@@ -61,5 +61,12 @@ struct RootView: View {
         } else {
             SignInView()
         }
+    }
+}
+
+extension Binding where Value == Bool {
+    /// Writes inside `withAnimation`, so the inspector slides in from the menu as well as the toolbar.
+    var animated: Binding<Bool> {
+        Binding(get: { wrappedValue }, set: { value in withAnimation { wrappedValue = value } })
     }
 }

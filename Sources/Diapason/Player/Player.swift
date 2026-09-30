@@ -243,13 +243,11 @@ final class Player {
         syncNowPlaying()
         report(.start)
         Task {
-            guard let url = library.artworkURL(for: track.artworkItemID, size: 600),
-                  let (data, _) = try? await URLSession.shared.data(from: url),
-                  current?.id == track.id
-            else {
+            let image = await ImageCache.shared.image(for: library.artworkURL(for: track.artworkItemID, size: 600))
+            guard let image, current?.id == track.id else {
                 return
             }
-            artwork = NSImage(data: data)
+            artwork = image
             syncNowPlaying()
         }
     }

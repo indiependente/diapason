@@ -16,18 +16,10 @@ final class PlaybackUITests: XCTestCase {
         else {
             throw XCTSkip("Set DIAPASON_TEST_SERVER, DIAPASON_TEST_USER and DIAPASON_TEST_PASSWORD.")
         }
-        resetStoredSession()
         let app = XCUIApplication()
+        app.launchArguments = ["-DiapasonFreshSession"]
         app.launch()
-
-        let signIn = app.buttons["signInButton"]
-        XCTAssertTrue(signIn.waitForExistence(timeout: 10), app.debugDescription)
-        fill(app.textFields["serverField"], with: server)
-        fill(app.textFields["usernameField"], with: user)
-        // Clicking a SecureField does not always give it focus, so tab into it from the username field.
-        app.textFields["usernameField"].typeKey(.tab, modifierFlags: [])
-        paste(password, into: app)
-        signIn.click()
+        signIn(app, server: server, user: user, password: password)
 
         let albums = app.staticTexts["Albums"]
         let signedIn = albums.waitForExistence(timeout: 15)
@@ -37,7 +29,8 @@ final class PlaybackUITests: XCTestCase {
         let sidebar = app.outlines["Sidebar"]
         XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
         sidebar.staticTexts["Artists"].click()
-        let artists = app.outlines.matching(NSPredicate(format: "label != 'Sidebar'")).firstMatch
+        let artists = app.outlines.matching(NSPredicate(format: "label != 'Sidebar' AND identifier != 'queueList'"))
+            .firstMatch
         XCTAssertTrue(artists.outlineRows.element(boundBy: 0).waitForExistence(timeout: 15), app.debugDescription)
         screenshot(app, name: "artists")
 
@@ -49,7 +42,8 @@ final class PlaybackUITests: XCTestCase {
         playlist.click()
 
         // SwiftUI's Table is an NSOutlineView underneath, like the sidebar, so skip the sidebar by label.
-        let table = app.outlines.matching(NSPredicate(format: "label != 'Sidebar'")).firstMatch
+        let table = app.outlines.matching(NSPredicate(format: "label != 'Sidebar' AND identifier != 'queueList'"))
+            .firstMatch
         let firstRow = table.outlineRows.element(boundBy: 0)
         XCTAssertTrue(firstRow.waitForExistence(timeout: 15), app.debugDescription)
         // Rows report themselves as not hittable, so click by coordinate.
@@ -62,7 +56,10 @@ final class PlaybackUITests: XCTestCase {
         try await Task.sleep(for: .seconds(8))
         screenshot(app, name: "playing")
 
-        app.checkBoxes["queueButton"].firstMatch.click()
+        // The panel state persists between launches, so only open it when it is closed.
+        if !app.outlines["queueList"].exists {
+            app.checkBoxes["queueButton"].firstMatch.click()
+        }
         XCTAssertTrue(app.staticTexts["Up Next"].waitForExistence(timeout: 5), app.debugDescription)
         screenshot(app, name: "queue")
         app.checkBoxes["queueButton"].firstMatch.click()
@@ -72,6 +69,17 @@ final class PlaybackUITests: XCTestCase {
         app.buttons["playPauseButton"].click()
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Pause")
         try await Task.sleep(for: .seconds(4))
+    }
+
+    private func signIn(_ app: XCUIApplication, server: String, user: String, password: String) {
+        let button = app.buttons["signInButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10), app.debugDescription)
+        fill(app.textFields["serverField"], with: server)
+        fill(app.textFields["usernameField"], with: user)
+        // Clicking a SecureField does not always give it focus, so tab into it from the username field.
+        app.textFields["usernameField"].typeKey(.tab, modifierFlags: [])
+        paste(password, into: app)
+        button.click()
     }
 
     private func fill(_ field: XCUIElement, with text: String) {
@@ -99,11 +107,5 @@ final class PlaybackUITests: XCTestCase {
             try? shot.pngRepresentation.write(to: base.appendingPathExtension("png"))
             try? app.debugDescription.write(to: base.appendingPathExtension("txt"), atomically: true, encoding: .utf8)
         }
-    }
-
-    /// Forces the sign-in screen so the test covers the whole flow.
-    private func resetStoredSession() {
-        let file = URL.applicationSupportDirectory.appending(path: "Diapason/credentials.json")
-        try? FileManager.default.removeItem(at: file)
     }
 }

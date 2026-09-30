@@ -59,7 +59,7 @@ DIAPASON_TEST_PASSWORD="$(cat ~/jellyfin_pass.txt)" \
 make test-e2e
 ```
 
-Without these variables the test is skipped.
+Without these variables the test is skipped. The test launches the app with `-DiapasonFreshSession`, which keeps the session in memory, so your stored sign-in is not touched.
 
 ## Releases
 
