@@ -14,6 +14,17 @@ final class Player {
         didSet { avPlayer.volume = volume }
     }
 
+    var isShuffled = UserDefaults.standard.bool(forKey: "shuffle") {
+        didSet {
+            queue.setShuffled(isShuffled)
+            UserDefaults.standard.set(isShuffled, forKey: "shuffle")
+        }
+    }
+
+    var repeatMode = RepeatMode(rawValue: UserDefaults.standard.string(forKey: "repeat") ?? "") ?? .off {
+        didSet { UserDefaults.standard.set(repeatMode.rawValue, forKey: "repeat") }
+    }
+
     var current: Track? {
         queue.current
     }
@@ -41,7 +52,7 @@ final class Player {
         NotificationCenter.default.addObserver(
             forName: AVPlayerItem.didPlayToEndTimeNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.next() }
+            Task { @MainActor in self?.trackEnded() }
         }
         // Tell the server the session ended, or it keeps showing the track as playing after quit.
         NotificationCenter.default.addObserver(
@@ -51,9 +62,11 @@ final class Player {
         }
     }
 
-    func play(_ tracks: [Track], from index: Int = 0) {
+    /// Starts a new queue. With shuffle on and no index, a random track starts.
+    func play(_ tracks: [Track], from index: Int? = nil) {
         report(.stopped)
-        queue = PlayQueue(tracks: tracks, index: index)
+        queue = PlayQueue(tracks: tracks, index: index ?? (isShuffled ? Int.random(in: 0 ..< max(tracks.count, 1)) : 0))
+        queue.setShuffled(isShuffled)
         load()
     }
 
@@ -89,8 +102,21 @@ final class Player {
         report(.stopped)
         if queue.advance() {
             load()
+        } else if repeatMode == .all, !queue.tracks.isEmpty {
+            queue.restart()
+            load()
         } else {
             stop()
+        }
+    }
+
+    /// Repeat-one replays the track. Otherwise the queue moves on like a manual skip.
+    private func trackEnded() {
+        if repeatMode == .one {
+            seek(to: 0)
+            avPlayer.play()
+        } else {
+            next()
         }
     }
 

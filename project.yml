@@ -28,6 +28,9 @@ packages:
   ViewInspector:
     url: https://github.com/nalexn/ViewInspector
     exactVersion: "0.10.3"
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: "2.9.2"
 
 targets:
   Diapason:
@@ -35,6 +38,8 @@ targets:
     platform: macOS
     sources:
       - path: Sources/Diapason
+    dependencies:
+      - package: Sparkle
     info:
       path: Sources/Diapason/Info.plist
       properties:
@@ -46,6 +51,10 @@ targets:
         # Home Jellyfin servers are plain http.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
+        # Sparkle. The EdDSA public key comes from `generate_keys`; see README "Releases".
+        SUFeedURL: https://github.com/indiependente/diapason/releases/latest/download/appcast.xml
+        SUEnableAutomaticChecks: true
+        SUPublicEDKey: ""
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.indiependente.Diapason

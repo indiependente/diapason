@@ -34,11 +34,18 @@ final class PlaybackUITests: XCTestCase {
         screenshot(app, name: "albums")
         XCTAssertTrue(signedIn, app.debugDescription)
 
-        // Sidebar: "Library" and "Albums" come first, the first playlist follows.
-        let sidebar = app.outlines.firstMatch
+        let sidebar = app.outlines["Sidebar"]
         XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
-        let playlist = sidebar.staticTexts.element(boundBy: 2)
-        XCTAssertTrue(playlist.waitForExistence(timeout: 10), app.debugDescription)
+        sidebar.staticTexts["Artists"].click()
+        let artists = app.outlines.matching(NSPredicate(format: "label != 'Sidebar'")).firstMatch
+        XCTAssertTrue(artists.outlineRows.element(boundBy: 0).waitForExistence(timeout: 15), app.debugDescription)
+        screenshot(app, name: "artists")
+
+        // Section headers show up as static texts too, so skip every fixed label to reach a playlist.
+        let fixed: Set = ["Library", "Albums", "Artists", "Playlists"]
+        let playlist = try XCTUnwrap(sidebar.staticTexts.allElementsBoundByIndex.first { text in
+            !fixed.contains((text.value as? String) ?? text.label)
+        })
         playlist.click()
 
         // SwiftUI's Table is an NSOutlineView underneath, like the sidebar, so skip the sidebar by label.

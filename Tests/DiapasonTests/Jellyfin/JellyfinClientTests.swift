@@ -79,6 +79,38 @@ struct JellyfinClientTests {
         #expect(fromAlbum.map(\.id) == ["t2"])
     }
 
+    @Test("artists come from the album artists endpoint, albums by artist filter on ArtistIds")
+    func artists() async throws {
+        StubURLProtocol.handler = { request in
+            let components = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }
+            if components?.path == "/Artists/AlbumArtists" {
+                return (200, Data(#"{"Items":[{"Id":"ar1","Name":"Sting"}]}"#.utf8))
+            }
+            let byArtist = components?.queryItems?.contains(URLQueryItem(name: "ArtistIds", value: "ar1")) == true
+            if components?.path == "/Items", byArtist {
+                return (200, Data(#"{"Items":[{"Id":"a1","Name":"Nothing Like The Sun","Type":"MusicAlbum"}]}"#.utf8))
+            }
+
+            return (404, Data())
+        }
+        let artists = try await client.artists()
+        #expect(artists.map(\.name) == ["Sting"])
+        let albums = try await client.albums(by: artists[0])
+        #expect(albums.map(\.id) == ["a1"])
+    }
+
+    @Test("track queries ask for media sources")
+    func tracksRequestMediaSources() async throws {
+        StubURLProtocol.handler = { request in
+            let components = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }
+            #expect(components?.queryItems?.contains(URLQueryItem(name: "Fields", value: "MediaSources")) == true)
+
+            return (200, Data(#"{"Items":[]}"#.utf8))
+        }
+        _ = try await client.tracks(in: MusicCollection(id: "p1", name: "P", kind: .playlist))
+        _ = try await client.tracks(in: MusicCollection(id: "a1", name: "A", kind: .album))
+    }
+
     @Test("authenticate posts the credentials and returns a session")
     func authenticate() async throws {
         StubURLProtocol.handler = { request in

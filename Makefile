@@ -5,9 +5,14 @@ ICON_SOURCE := Resources/AppIcon.png
 ICON_SET := Sources/Diapason/Assets.xcassets/AppIcon.appiconset
 ICON_SIZES := 16 32 64 128 256 512 1024
 INSTALL_PATH := /Applications/$(SCHEME).app
+ARCHIVE_PATH := build/Diapason.xcarchive
+ARCHIVE_APP := $(ARCHIVE_PATH)/Products/Applications/$(SCHEME).app
+EXPORT_DIR := build/Export
+DMG_PATH := build/Diapason.dmg
+UNSIGNED_DMG_PATH := build/Diapason-unsigned.dmg
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister
 
-.PHONY: gen build run test test-e2e lint format clean icons install
+.PHONY: gen build run test test-e2e lint format clean icons install archive export dmg dmg-unsigned appcast release
 
 gen:
 	xcodegen generate
@@ -75,3 +80,38 @@ install: build
 		$(LSREGISTER) -f "$(INSTALL_PATH)" >/dev/null 2>&1; \
 		killall Dock 2>/dev/null || true; \
 		echo "Installed."
+
+archive: gen
+	set -o pipefail && xcodebuild archive \
+		-project $(PROJECT) \
+		-scheme $(SCHEME) \
+		-destination '$(DESTINATION)' \
+		-archivePath $(ARCHIVE_PATH) \
+		| xcbeautify
+
+export: archive
+	@security find-identity -v -p codesigning 2>/dev/null | grep -q "Developer ID Application" || { \
+		echo "No 'Developer ID Application' identity in the keychain. Install the cert, set DEVELOPMENT_TEAM"; \
+		echo "in project.yml and flip ENABLE_HARDENED_RUNTIME to YES, or use 'make dmg-unsigned'."; \
+		exit 1; \
+	}
+	set -o pipefail && xcodebuild -exportArchive \
+		-archivePath $(ARCHIVE_PATH) \
+		-exportPath $(EXPORT_DIR) \
+		-exportOptionsPlist scripts/ExportOptions.plist \
+		| xcbeautify
+
+dmg: export
+	scripts/make_dmg.sh $(EXPORT_DIR)/$(SCHEME).app $(DMG_PATH)
+
+# Ad-hoc signed app straight out of the archive. Gatekeeper warns on first launch (right-click, Open).
+dmg-unsigned: archive
+	scripts/make_dmg.sh $(ARCHIVE_APP) $(UNSIGNED_DMG_PATH)
+
+# Signs the DMG with the EdDSA key in the login keychain and writes build/appcast.xml.
+appcast:
+	@command -v generate_appcast >/dev/null || { echo "Install Sparkle tools: brew install --cask sparkle"; exit 1; }
+	generate_appcast build/ --download-url-prefix https://github.com/indiependente/diapason/releases/latest/download/
+
+release: dmg appcast
+	@echo "Upload $(DMG_PATH) and build/appcast.xml to the GitHub release."

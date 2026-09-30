@@ -53,7 +53,7 @@ struct JellyfinClient: Sendable, Equatable {
 
     func authenticate(username: String, password: String) async throws -> Credentials {
         let response: AuthResponse = try await send(
-            request("Users/AuthenticateByName", method: "POST", body: AuthBody(username: username, password: password))
+            request("Users/AuthenticateByName", method: "POST", body: AuthBody(username: username, pw: password))
         )
 
         return Credentials(server: server, username: username, userID: response.user.id, token: response.accessToken)
@@ -67,18 +67,35 @@ struct JellyfinClient: Sendable, Equatable {
         try await items(["IncludeItemTypes": "MusicAlbum", "Recursive": "true", "SortBy": "SortName"])
     }
 
+    func artists() async throws -> [Artist] {
+        try await items(path: "Artists/AlbumArtists", ["SortBy": "SortName"])
+    }
+
+    func albums(by artist: Artist) async throws -> [MusicCollection] {
+        try await items([
+            "IncludeItemTypes": "MusicAlbum",
+            "Recursive": "true",
+            "ArtistIds": artist.id,
+            "SortBy": "ProductionYear,SortName"
+        ])
+    }
+
     func tracks(in collection: MusicCollection) async throws -> [Track] {
         switch collection.kind {
         case .playlist:
-            try await items(path: "Playlists/\(collection.id)/Items", [:])
+            try await items(path: "Playlists/\(collection.id)/Items", ["Fields": "MediaSources"])
         case .album:
-            try await items(["ParentId": collection.id, "SortBy": "ParentIndexNumber,IndexNumber,SortName"])
+            try await items([
+                "ParentId": collection.id,
+                "SortBy": "ParentIndexNumber,IndexNumber,SortName",
+                "Fields": "MediaSources"
+            ])
         }
     }
 
     func report(_ event: PlaybackEvent, track: Track, position: TimeInterval, isPaused: Bool) async throws {
         let body = ReportBody(
-            itemID: track.id,
+            itemId: track.id,
             positionTicks: Int64(position * Track.ticksPerSecond),
             isPaused: isPaused
         )
@@ -132,7 +149,7 @@ struct JellyfinClient: Sendable, Equatable {
         request.setValue(authorization, forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body {
-            request.httpBody = try JSONEncoder().encode(body)
+            request.httpBody = try JSONEncoder.jellyfin.encode(body)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
@@ -140,7 +157,7 @@ struct JellyfinClient: Sendable, Equatable {
     }
 
     private func send<T: Decodable>(_ request: URLRequest) async throws -> T {
-        try await JSONDecoder().decode(T.self, from: data(for: request))
+        try await JSONDecoder.jellyfin.decode(T.self, from: data(for: request))
     }
 
     private func data(for request: URLRequest) async throws -> Data {
@@ -154,56 +171,30 @@ struct JellyfinClient: Sendable, Equatable {
     }
 }
 
-// MARK: Wire formats
+// MARK: Wire formats (keys map to PascalCase through JSONEncoder/JSONDecoder.jellyfin)
 
 private struct AuthBody: Encodable {
     let username: String
-    let password: String
-
-    private enum CodingKeys: String, CodingKey {
-        case username = "Username"
-        case password = "Pw"
-    }
+    let pw: String
 }
 
 private struct AuthUser: Decodable {
     let id: String
-
-    private enum CodingKeys: String, CodingKey {
-        case id = "Id"
-    }
 }
 
 private struct AuthResponse: Decodable {
     let user: AuthUser
     let accessToken: String
-
-    private enum CodingKeys: String, CodingKey {
-        case user = "User"
-        case accessToken = "AccessToken"
-    }
 }
 
 private struct ReportBody: Encodable {
-    let itemID: String
+    let itemId: String
     let positionTicks: Int64
     let isPaused: Bool
     let playMethod = "DirectStream"
     let canSeek = true
-
-    private enum CodingKeys: String, CodingKey {
-        case itemID = "ItemId"
-        case positionTicks = "PositionTicks"
-        case isPaused = "IsPaused"
-        case playMethod = "PlayMethod"
-        case canSeek = "CanSeek"
-    }
 }
 
 private struct Page<T: Decodable>: Decodable {
     let items: [T]
-
-    private enum CodingKeys: String, CodingKey {
-        case items = "Items"
-    }
 }

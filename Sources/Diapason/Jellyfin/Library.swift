@@ -11,6 +11,7 @@ final class Library {
     private(set) var credentials: Credentials?
     private(set) var playlists: [MusicCollection] = []
     private(set) var albums: [MusicCollection] = []
+    private(set) var artists: [Artist] = []
     private(set) var isLoading = false
     var errorMessage: String?
 
@@ -59,6 +60,7 @@ final class Library {
         client = nil
         playlists = []
         albums = []
+        artists = []
     }
 
     func refresh() async {
@@ -70,13 +72,22 @@ final class Library {
         do {
             async let playlists = client.playlists()
             async let albums = client.albums()
-            (self.playlists, self.albums) = try await (playlists, albums)
+            async let artists = client.artists()
+            (self.playlists, self.albums, self.artists) = try await (playlists, albums, artists)
             errorMessage = nil
         } catch JellyfinError.unauthorized {
             signOut()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func albums(by artist: Artist) async throws -> [MusicCollection] {
+        guard let client else {
+            throw JellyfinError.notSignedIn
+        }
+
+        return try await client.albums(by: artist)
     }
 
     func tracks(in collection: MusicCollection) async throws -> [Track] {

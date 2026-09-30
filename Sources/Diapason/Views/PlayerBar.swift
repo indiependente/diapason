@@ -9,6 +9,7 @@ struct PlayerBar: View {
         @Bindable var player = player
         HStack(spacing: 24) {
             transport
+            modes
             Spacer(minLength: 0)
             nowPlaying
                 .frame(maxWidth: 560)
@@ -51,6 +52,25 @@ struct PlayerBar: View {
         .disabled(player.current == nil)
     }
 
+    private var modes: some View {
+        @Bindable var player = player
+
+        return HStack(spacing: 14) {
+            Toggle(isOn: $player.isShuffled) {
+                Image(systemName: "shuffle")
+                    .accessibilityLabel("Shuffle")
+            }
+            Button { player.repeatMode = player.repeatMode.next } label: {
+                Image(systemName: player.repeatMode.systemImage)
+                    .foregroundStyle(player.repeatMode == .off ? .secondary : Color.accentColor)
+                    .accessibilityLabel("Repeat \(player.repeatMode.title)")
+            }
+        }
+        .toggleStyle(.button)
+        .buttonStyle(.borderless)
+        .font(.body)
+    }
+
     @ViewBuilder
     private var nowPlaying: some View {
         if let track = player.current {
@@ -71,7 +91,8 @@ struct PlayerBar: View {
                         .font(.callout.weight(.medium))
                         .lineLimit(1)
                         .accessibilityIdentifier("nowPlayingTitle")
-                    Text("\(track.artist) — \(track.album)")
+                    Text([track.artist, track.album, track.media?.summary ?? ""].filter { !$0.isEmpty }
+                        .joined(separator: "  ·  "))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)

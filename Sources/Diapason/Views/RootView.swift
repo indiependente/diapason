@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(Library.self) private var library
     @Environment(Player.self) private var player
+    let updater: UpdaterController
     @State private var selection: SidebarItem? = .albums
 
     var body: some View {
@@ -14,6 +15,8 @@ struct RootView: View {
                 switch selection {
                 case .albums, .none:
                     AlbumsView()
+                case .artists:
+                    ArtistsView()
                 case let .playlist(playlist):
                     NavigationStack {
                         TrackListView(collection: playlist)
@@ -23,6 +26,11 @@ struct RootView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 PlayerBar()
             }
+            .overlay(alignment: .bottomTrailing) {
+                UpdateBubble(updater: updater)
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 90)
+            }
             .onKeyPress(.space) {
                 guard player.current != nil else {
                     return .ignored
@@ -31,7 +39,10 @@ struct RootView: View {
 
                 return .handled
             }
-            .task { await library.refresh() }
+            .task {
+                updater.start()
+                await library.refresh()
+            }
         } else {
             SignInView()
         }

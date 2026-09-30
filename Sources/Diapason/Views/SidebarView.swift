@@ -9,6 +9,8 @@ struct SidebarView: View {
             Section("Library") {
                 Label("Albums", systemImage: "square.stack")
                     .tag(SidebarItem.albums)
+                Label("Artists", systemImage: "music.microphone")
+                    .tag(SidebarItem.artists)
             }
             Section("Playlists") {
                 ForEach(library.playlists) { playlist in

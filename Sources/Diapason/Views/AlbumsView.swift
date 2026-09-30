@@ -17,31 +17,41 @@ struct AlbumsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 20)], spacing: 24) {
-                    ForEach(albums) { album in
-                        NavigationLink(value: album) {
-                            AlbumCell(
-                                album: album,
-                                artworkURL: library.artworkURL(for: album.hasArtwork ? album.id : nil, size: 400)
-                            )
-                        }
-                        .buttonStyle(.plain)
+            AlbumGrid(albums: albums)
+                .navigationTitle("Albums")
+                .navigationDestination(for: MusicCollection.self) { album in
+                    TrackListView(collection: album)
+                }
+                .overlay {
+                    if library.albums.isEmpty, library.isLoading {
+                        ProgressView()
                     }
                 }
-                .padding(20)
-            }
-            .navigationTitle("Albums")
-            .navigationDestination(for: MusicCollection.self) { album in
-                TrackListView(collection: album)
-            }
-            .overlay {
-                if library.albums.isEmpty, library.isLoading {
-                    ProgressView()
-                }
-            }
         }
         .searchable(text: $query, placement: .toolbar, prompt: "Albums or artists")
+    }
+}
+
+/// A scrolling grid of album covers. Each cell links to the album's tracks.
+struct AlbumGrid: View {
+    @Environment(Library.self) private var library
+    let albums: [MusicCollection]
+
+    var body: some View {
+        ScrollView {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 20)], spacing: 24) {
+                ForEach(albums) { album in
+                    NavigationLink(value: album) {
+                        AlbumCell(
+                            album: album,
+                            artworkURL: library.artworkURL(for: album.hasArtwork ? album.id : nil, size: 400)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(20)
+        }
     }
 }
 
@@ -57,7 +67,7 @@ struct AlbumCell: View {
             Text(album.name)
                 .font(.callout.weight(.medium))
                 .lineLimit(1)
-            Text(album.subtitle)
+            Text(album.year.map(String.init) ?? album.subtitle)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)

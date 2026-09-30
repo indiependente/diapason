@@ -30,6 +30,17 @@ struct TrackListView: View {
                 }
                 TableColumn("Artist", value: \.artist)
                 TableColumn("Album", value: \.album)
+                TableColumn("Format") { track in
+                    Text(track.media?.format ?? "")
+                        .foregroundStyle(.secondary)
+                }
+                .width(min: 80, ideal: 110)
+                TableColumn("kbps") { track in
+                    Text(track.media?.kbps.map(String.init) ?? "")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .width(48)
                 TableColumn("Time") { track in
                     Text(track.duration.trackFormatted)
                         .monospacedDigit()
@@ -85,8 +96,11 @@ struct TrackListView: View {
                 HStack {
                     Button("Play", systemImage: "play.fill") { player.play(tracks) }
                         .buttonStyle(.borderedProminent)
-                    Button("Shuffle", systemImage: "shuffle") { player.play(tracks.shuffled()) }
-                        .buttonStyle(.bordered)
+                    Button("Shuffle", systemImage: "shuffle") {
+                        player.isShuffled = true
+                        player.play(tracks)
+                    }
+                    .buttonStyle(.bordered)
                 }
                 .disabled(tracks.isEmpty)
                 .padding(.top, 8)

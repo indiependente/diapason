@@ -14,17 +14,10 @@ struct Track: Identifiable, Hashable, Sendable, Decodable {
     let duration: TimeInterval
     /// The item that has the primary image: the track itself, or its album.
     let artworkItemID: String?
+    let media: MediaInfo?
 
-    private enum CodingKeys: String, CodingKey {
-        case id = "Id"
-        case title = "Name"
-        case artists = "Artists"
-        case album = "Album"
-        case albumID = "AlbumId"
-        case trackNumber = "IndexNumber"
-        case runTimeTicks = "RunTimeTicks"
-        case imageTags = "ImageTags"
-        case albumPrimaryImageTag = "AlbumPrimaryImageTag"
+    private enum CodingKeys: CodingKey {
+        case id, name, artists, album, albumId, indexNumber, runTimeTicks, imageTags, albumPrimaryImageTag, mediaSources
     }
 
     init(
@@ -35,7 +28,8 @@ struct Track: Identifiable, Hashable, Sendable, Decodable {
         albumID: String? = nil,
         trackNumber: Int? = nil,
         duration: TimeInterval = 0,
-        artworkItemID: String? = nil
+        artworkItemID: String? = nil,
+        media: MediaInfo? = nil
     ) {
         self.id = id
         self.title = title
@@ -45,16 +39,17 @@ struct Track: Identifiable, Hashable, Sendable, Decodable {
         self.trackNumber = trackNumber
         self.duration = duration
         self.artworkItemID = artworkItemID
+        self.media = media
     }
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
-        title = try container.decode(String.self, forKey: .title)
+        title = try container.decode(String.self, forKey: .name)
         artist = try container.decodeIfPresent([String].self, forKey: .artists)?.joined(separator: ", ") ?? ""
         album = try container.decodeIfPresent(String.self, forKey: .album) ?? ""
-        albumID = try container.decodeIfPresent(String.self, forKey: .albumID)
-        trackNumber = try container.decodeIfPresent(Int.self, forKey: .trackNumber)
+        albumID = try container.decodeIfPresent(String.self, forKey: .albumId)
+        trackNumber = try container.decodeIfPresent(Int.self, forKey: .indexNumber)
         let ticks = try container.decodeIfPresent(Double.self, forKey: .runTimeTicks) ?? 0
         duration = ticks / Self.ticksPerSecond
         let tags = try container.decodeIfPresent([String: String].self, forKey: .imageTags) ?? [:]
@@ -65,7 +60,73 @@ struct Track: Identifiable, Hashable, Sendable, Decodable {
         } else {
             artworkItemID = nil
         }
+        let sources = try container.decodeIfPresent([MediaSource].self, forKey: .mediaSources) ?? []
+        media = sources.first.flatMap(MediaInfo.init)
     }
+}
+
+/// Codec details of the file behind a track.
+struct MediaInfo: Hashable, Sendable {
+    let codec: String
+    /// Bits per second.
+    let bitrate: Int?
+    /// Hz.
+    let sampleRate: Int?
+    let bitDepth: Int?
+
+    init(codec: String, bitrate: Int? = nil, sampleRate: Int? = nil, bitDepth: Int? = nil) {
+        self.codec = codec
+        self.bitrate = bitrate
+        self.sampleRate = sampleRate
+        self.bitDepth = bitDepth
+    }
+
+    fileprivate init?(source: MediaSource) {
+        guard let stream = source.mediaStreams?.first(where: { $0.type == "Audio" }) else {
+            return nil
+        }
+        codec = stream.codec ?? source.container ?? "?"
+        bitrate = stream.bitRate ?? source.bitrate
+        sampleRate = stream.sampleRate
+        bitDepth = stream.bitDepth
+    }
+
+    var kbps: Int? {
+        bitrate.map { $0 / 1000 }
+    }
+
+    /// "FLAC 24/96", "MP3 44.1 kHz", or "AAC".
+    var format: String {
+        let name = codec.uppercased()
+        guard let sampleRate else {
+            return name
+        }
+        let khz = String(format: "%g", Double(sampleRate) / 1000)
+        if let bitDepth {
+            return "\(name) \(bitDepth)/\(khz)"
+        }
+
+        return "\(name) \(khz) kHz"
+    }
+
+    /// "FLAC 24/96 · 2747 kbps"
+    var summary: String {
+        [format, kbps.map { "\($0) kbps" }].compactMap(\.self).joined(separator: " · ")
+    }
+}
+
+private struct MediaSource: Decodable {
+    let container: String?
+    let bitrate: Int?
+    let mediaStreams: [MediaStream]?
+}
+
+private struct MediaStream: Decodable {
+    let type: String
+    let codec: String?
+    let bitRate: Int?
+    let sampleRate: Int?
+    let bitDepth: Int?
 }
 
 extension TimeInterval {
