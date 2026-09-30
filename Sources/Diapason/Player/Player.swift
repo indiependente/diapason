@@ -11,7 +11,13 @@ final class Player {
     private(set) var currentTime: TimeInterval = 0
     private(set) var artwork: NSImage?
     var volume: Float = 1 {
-        didSet { avPlayer.volume = volume }
+        didSet {
+            // While paused the output sits at zero after the fade-out; resume ramps up to the new level.
+            if isPlaying {
+                fadeTask?.cancel()
+                avPlayer.volume = volume
+            }
+        }
     }
 
     var isShuffled = UserDefaults.standard.bool(forKey: "shuffle") {
@@ -34,6 +40,7 @@ final class Player {
     private let nowPlaying = NowPlaying()
     private var lastReport: TimeInterval = 0
     private var timeObserver: Any?
+    private var fadeTask: Task<Void, Never>?
 
     init(library: Library) {
         self.library = library
@@ -132,23 +139,42 @@ final class Player {
     }
 
     func pause() {
-        guard current != nil else {
+        guard current != nil, isPlaying else {
             return
         }
-        avPlayer.pause()
         isPlaying = false
+        syncNowPlaying()
+        report(.progress)
+        fade(to: 0) { [avPlayer] in avPlayer.pause() }
+    }
+
+    func resume() {
+        guard current != nil, !isPlaying else {
+            return
+        }
+        isPlaying = true
+        avPlayer.volume = 0
+        avPlayer.play()
+        fade(to: volume)
         syncNowPlaying()
         report(.progress)
     }
 
-    func resume() {
-        guard current != nil else {
-            return
+    /// Ramps the output volume over 200 ms so pause and resume do not click.
+    private func fade(to target: Float, then completion: (@MainActor () -> Void)? = nil) {
+        fadeTask?.cancel()
+        let start = avPlayer.volume
+        let steps = 10
+        fadeTask = Task {
+            for step in 1 ... steps {
+                try? await Task.sleep(for: .milliseconds(20))
+                guard !Task.isCancelled else {
+                    return
+                }
+                avPlayer.volume = start + (target - start) * Float(step) / Float(steps)
+            }
+            completion?()
         }
-        avPlayer.play()
-        isPlaying = true
-        syncNowPlaying()
-        report(.progress)
     }
 
     func next() {
@@ -191,6 +217,7 @@ final class Player {
     }
 
     func stop() {
+        fadeTask?.cancel()
         avPlayer.replaceCurrentItem(with: nil)
         queue = PlayQueue()
         isPlaying = false
@@ -205,6 +232,8 @@ final class Player {
 
             return
         }
+        fadeTask?.cancel()
+        avPlayer.volume = volume
         avPlayer.replaceCurrentItem(with: AVPlayerItem(url: client.streamURL(for: track)))
         avPlayer.play()
         isPlaying = true
