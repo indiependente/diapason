@@ -91,6 +91,17 @@ struct JellyfinClient: Sendable, Equatable {
         ])
     }
 
+    /// Empty when the server has no lyrics for the track.
+    func lyrics(for track: Track) async throws -> [LyricLine] {
+        do {
+            let response: LyricsResponse = try await send(request("Audio/\(track.id)/Lyrics"))
+
+            return response.lyrics
+        } catch JellyfinError.http(404) {
+            return []
+        }
+    }
+
     func favoriteTracks() async throws -> [Track] {
         try await items([
             "IncludeItemTypes": "Audio",

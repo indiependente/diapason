@@ -36,7 +36,7 @@ final class PlaybackUITests: XCTestCase {
         screenshot(app, name: "artists")
 
         // Section headers show up as static texts too, so skip every fixed label to reach a playlist.
-        let fixed: Set = ["Library", "Albums", "Artists", "Playlists"]
+        let fixed: Set = ["Library", "Albums", "Artists", "Favorites", "Playlists"]
         let playlist = try XCTUnwrap(sidebar.staticTexts.allElementsBoundByIndex.first { text in
             !fixed.contains((text.value as? String) ?? text.label)
         })
@@ -57,13 +57,7 @@ final class PlaybackUITests: XCTestCase {
         try await Task.sleep(for: .seconds(8))
         screenshot(app, name: "playing")
 
-        // The panel state persists between launches, so only open it when it is closed.
-        if !app.outlines["queueList"].exists {
-            app.checkBoxes["queueButton"].firstMatch.click()
-        }
-        XCTAssertTrue(app.staticTexts["Up Next"].waitForExistence(timeout: 5), app.debugDescription)
-        screenshot(app, name: "queue")
-        app.checkBoxes["queueButton"].firstMatch.click()
+        try await openSidePanels(app)
 
         pauseAndResume(app)
         try skipToNext(app)
@@ -73,6 +67,24 @@ final class PlaybackUITests: XCTestCase {
         // Quit like a person would, so the app gets to send its stop report.
         app.typeKey("q", modifierFlags: .command)
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
+    }
+
+    /// Opens Up Next and then Lyrics, taking a screenshot of each, and closes the panel again.
+    private func openSidePanels(_ app: XCUIApplication) async throws {
+        // The panel state persists between launches, so only open it when it is closed.
+        if !app.outlines["queueList"].exists {
+            app.checkBoxes["queueButton"].firstMatch.click()
+        }
+        XCTAssertTrue(app.staticTexts["Up Next"].waitForExistence(timeout: 5), app.debugDescription)
+        screenshot(app, name: "queue")
+        app.checkBoxes["lyricsButton"].firstMatch.click()
+        XCTAssertTrue(
+            app.descendants(matching: .any)["lyricsPanel"].firstMatch.waitForExistence(timeout: 5),
+            app.debugDescription
+        )
+        try await Task.sleep(for: .seconds(3))
+        screenshot(app, name: "lyrics")
+        app.checkBoxes["lyricsButton"].firstMatch.click()
     }
 
     private func pauseAndResume(_ app: XCUIApplication) {

@@ -43,6 +43,7 @@ The `.xcodeproj` is generated and gitignored. Edit `project.yml`, then run `make
 - Search the whole library from the sidebar: songs come from the server, artists and albums from the loaded lists.
 - Play, pause, next, previous, seek, and volume. Double-click a track to play from there.
 - Shuffle and repeat (off, all, one). Both persist across launches.
+- Lyrics panel (Cmd+Shift+L, the microphone button): synced lyrics follow the song, and a click on a line seeks to it.
 - Up Next queue panel (Cmd+Shift+U): Play Next and Add to Queue from tracks, albums, and playlists; drag to reorder, Delete to remove, double-click to jump, Clear to drop the rest.
 - Track format in the track list and the player bar: codec, bit depth, sample rate, and bit rate.
 - Now Playing integration: Control Center, media keys, and the playback position scrubber.
@@ -81,8 +82,8 @@ Sources/Diapason/
   Jellyfin/   REST client, credentials, SecretStore, Library (server state)
   Player/     PlayQueue, Player (AVPlayer), NowPlaying (MediaPlayer bridge), RepeatMode
   Updates/    UpdaterController (Sparkle)
-  Models/     Track and MediaInfo, MusicCollection, Artist, SidebarItem, Navigation
-  Views/      RootView, SidebarView, AlbumsView, ArtistsView, SearchView, TrackListView, QueueView, PlayerBar, SignInView, SettingsView
+  Models/     Track and MediaInfo, MusicCollection, Artist, LyricLine, SidebarItem, Navigation
+  Views/      RootView, SidebarView, AlbumsView, ArtistsView, SearchView, TrackListView, QueueView, LyricsView, PlayerBar, SignInView, SettingsView
 Tests/DiapasonTests/     unit tests (Swift Testing, ViewInspector)
 Tests/DiapasonUITests/   XCUITest end-to-end flow
 ```

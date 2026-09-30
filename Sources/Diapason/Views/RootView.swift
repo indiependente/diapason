@@ -5,7 +5,7 @@ struct RootView: View {
     @Environment(Player.self) private var player
     @Environment(Navigation.self) private var navigation
     let updater: UpdaterController
-    @AppStorage("showQueue") private var showQueue = false
+    @AppStorage("sidePanel") private var sidePanel = SidePanel.none
     /// Always open with the sidebar visible instead of restoring a collapsed one.
     @State private var columns: NavigationSplitViewVisibility = .all
 
@@ -36,13 +36,23 @@ struct RootView: View {
                 }
             }
             .searchable(text: $navigation.query, placement: .sidebar, prompt: "Search songs, albums, artists")
-            .inspector(isPresented: $showQueue) {
-                QueueView()
-                    .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
+            .inspector(isPresented: $sidePanel.isOpen) {
+                Group {
+                    if sidePanel == .lyrics {
+                        LyricsView()
+                    } else {
+                        QueueView()
+                    }
+                }
+                .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
             }
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Toggle(isOn: $showQueue.animated) {
+                ToolbarItemGroup(placement: .primaryAction) {
+                    Toggle(isOn: $sidePanel.showing(.lyrics)) {
+                        Label("Lyrics", systemImage: "music.microphone")
+                    }
+                    .accessibilityIdentifier("lyricsButton")
+                    Toggle(isOn: $sidePanel.showing(.queue)) {
                         Label("Up Next", systemImage: "list.bullet")
                     }
                     .accessibilityIdentifier("queueButton")
@@ -74,9 +84,27 @@ struct RootView: View {
     }
 }
 
-extension Binding where Value == Bool {
-    /// Writes inside `withAnimation`, so the inspector slides in from the menu as well as the toolbar.
-    var animated: Binding<Bool> {
-        Binding(get: { wrappedValue }, set: { value in withAnimation { wrappedValue = value } })
+/// What the side inspector shows.
+enum SidePanel: String {
+    case none
+    case queue
+    case lyrics
+}
+
+extension Binding where Value == SidePanel {
+    var isOpen: Binding<Bool> {
+        Binding<Bool>(get: { wrappedValue != .none }, set: { open in
+            if !open {
+                withAnimation { wrappedValue = .none }
+            }
+        })
+    }
+
+    /// A toggle for one panel. Turning it on replaces the other panel; turning it off closes the inspector.
+    /// Writes happen inside `withAnimation`, so the panel slides in from the menu as well as the toolbar.
+    func showing(_ panel: SidePanel) -> Binding<Bool> {
+        Binding<Bool>(get: { wrappedValue == panel }, set: { on in
+            withAnimation { wrappedValue = on ? panel : .none }
+        })
     }
 }

@@ -138,6 +138,19 @@ struct JellyfinClientTests {
         try await client.setFavorite("t1", false)
     }
 
+    @Test("lyrics come from the audio lyrics endpoint, and a 404 means none")
+    func lyrics() async throws {
+        StubURLProtocol.handler = { request in
+            switch request.url?.path() {
+            case "/Audio/t1/Lyrics": (200, Data(#"{"Lyrics":[{"Text":"la","Start":10000000}]}"#.utf8))
+            default: (404, Data())
+            }
+        }
+        let lines = try await client.lyrics(for: Track(id: "t1", title: "x", artist: "y"))
+        #expect(lines == [LyricLine(text: "la", start: 1)])
+        #expect(try await client.lyrics(for: Track(id: "t2", title: "x", artist: "y")).isEmpty)
+    }
+
     @Test("track queries ask for media sources")
     func tracksRequestMediaSources() async throws {
         StubURLProtocol.handler = { request in

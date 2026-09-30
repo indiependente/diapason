@@ -114,6 +114,14 @@ final class Library {
         return tracks
     }
 
+    func lyrics(for track: Track) async throws -> [LyricLine] {
+        guard let client else {
+            throw JellyfinError.notSignedIn
+        }
+
+        return try await client.lyrics(for: track)
+    }
+
     func isFavorite(_ track: Track) -> Bool {
         favoriteIDs.contains(track.id)
     }

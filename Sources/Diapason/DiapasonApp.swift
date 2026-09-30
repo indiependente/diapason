@@ -7,7 +7,7 @@ struct DiapasonApp: App {
     @State private var player: Player
     @State private var updater = UpdaterController()
     @State private var navigation = Navigation()
-    @AppStorage("showQueue") private var showQueue = false
+    @AppStorage("sidePanel") private var sidePanel = SidePanel.none
 
     init() {
         // Tests must not pick up the real session: the unit test host would start talking to the
@@ -46,7 +46,7 @@ struct DiapasonApp: App {
                 .environment(navigation)
                 // Sidebar, detail, and the Up Next panel do not fit in 900 points; the window grows instead of
                 // squeezing.
-                .frame(minWidth: showQueue ? 1220 : 900, minHeight: 600)
+                .frame(minWidth: sidePanel == .none ? 900 : 1220, minHeight: 600)
         }
         .commands {
             CommandGroup(after: .appInfo) {
@@ -86,8 +86,10 @@ struct DiapasonApp: App {
                 }
             }
             CommandGroup(after: .toolbar) {
-                Toggle("Show Up Next", isOn: $showQueue.animated)
+                Toggle("Show Up Next", isOn: $sidePanel.showing(.queue))
                     .keyboardShortcut("u", modifiers: [.command, .shift])
+                Toggle("Show Lyrics", isOn: $sidePanel.showing(.lyrics))
+                    .keyboardShortcut("l", modifiers: [.command, .shift])
                 Button("Refresh Library") { Task { await library.refresh() } }
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(!library.isSignedIn)
