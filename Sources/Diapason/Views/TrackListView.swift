@@ -50,6 +50,8 @@ struct TrackListView: View {
             }
             .contextMenu(forSelectionType: Track.ID.self) { ids in
                 Button("Play") { play(from: ids.first) }
+                Button("Play Next") { player.playNext(selected(ids)) }
+                Button("Add to Queue") { player.addToQueue(selected(ids)) }
             } primaryAction: { ids in
                 play(from: ids.first)
             }
@@ -101,6 +103,15 @@ struct TrackListView: View {
                         player.play(tracks)
                     }
                     .buttonStyle(.bordered)
+                    Menu {
+                        Button("Play Next") { player.playNext(tracks) }
+                        Button("Add to Queue") { player.addToQueue(tracks) }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .accessibilityLabel("More")
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
                 }
                 .disabled(tracks.isEmpty)
                 .padding(.top, 8)
@@ -108,6 +119,11 @@ struct TrackListView: View {
             Spacer()
         }
         .padding(20)
+    }
+
+    /// The selected tracks in table order.
+    private func selected(_ ids: Set<Track.ID>) -> [Track] {
+        tracks.filter { ids.contains($0.id) }
     }
 
     private func play(from id: Track.ID?) {

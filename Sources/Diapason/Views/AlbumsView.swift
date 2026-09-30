@@ -35,6 +35,7 @@ struct AlbumsView: View {
 /// A scrolling grid of album covers. Each cell links to the album's tracks.
 struct AlbumGrid: View {
     @Environment(Library.self) private var library
+    @Environment(Player.self) private var player
     let albums: [MusicCollection]
 
     var body: some View {
@@ -48,9 +49,22 @@ struct AlbumGrid: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("Play") { queue(album) { player.play($0) } }
+                        Button("Play Next") { queue(album, player.playNext) }
+                        Button("Add to Queue") { queue(album, player.addToQueue) }
+                    }
                 }
             }
             .padding(20)
+        }
+    }
+
+    private func queue(_ album: MusicCollection, _ action: @escaping @MainActor ([Track]) -> Void) {
+        Task {
+            if let tracks = try? await library.tracks(in: album) {
+                action(tracks)
+            }
         }
     }
 }

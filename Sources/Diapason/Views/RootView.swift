@@ -5,10 +5,13 @@ struct RootView: View {
     @Environment(Player.self) private var player
     let updater: UpdaterController
     @State private var selection: SidebarItem? = .albums
+    @AppStorage("showQueue") private var showQueue = false
+    /// Always open with the sidebar visible instead of restoring a collapsed one.
+    @State private var columns: NavigationSplitViewVisibility = .all
 
     var body: some View {
         if library.isSignedIn {
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: $columns) {
                 SidebarView(selection: $selection)
                     .navigationSplitViewColumnWidth(min: 200, ideal: 240)
             } detail: {
@@ -21,6 +24,18 @@ struct RootView: View {
                     NavigationStack {
                         TrackListView(collection: playlist)
                     }
+                }
+            }
+            .inspector(isPresented: $showQueue) {
+                QueueView()
+                    .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
+            }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Toggle(isOn: $showQueue) {
+                        Label("Up Next", systemImage: "list.bullet")
+                    }
+                    .accessibilityIdentifier("queueButton")
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {

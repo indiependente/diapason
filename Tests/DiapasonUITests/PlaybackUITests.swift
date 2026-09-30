@@ -62,6 +62,11 @@ final class PlaybackUITests: XCTestCase {
         try await Task.sleep(for: .seconds(8))
         screenshot(app, name: "playing")
 
+        app.checkBoxes["queueButton"].firstMatch.click()
+        XCTAssertTrue(app.staticTexts["Up Next"].waitForExistence(timeout: 5), app.debugDescription)
+        screenshot(app, name: "queue")
+        app.checkBoxes["queueButton"].firstMatch.click()
+
         app.buttons["playPauseButton"].click()
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Play")
         app.buttons["playPauseButton"].click()

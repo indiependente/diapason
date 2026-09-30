@@ -5,6 +5,7 @@ struct DiapasonApp: App {
     @State private var library: Library
     @State private var player: Player
     @State private var updater = UpdaterController()
+    @AppStorage("showQueue") private var showQueue = false
 
     init() {
         // The ad-hoc signed test host would trigger a Keychain access prompt on every rebuild.
@@ -51,6 +52,8 @@ struct DiapasonApp: App {
                 }
             }
             CommandGroup(after: .toolbar) {
+                Toggle("Show Up Next", isOn: $showQueue)
+                    .keyboardShortcut("u", modifiers: [.command, .shift])
                 Button("Refresh Library") { Task { await library.refresh() } }
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(!library.isSignedIn)

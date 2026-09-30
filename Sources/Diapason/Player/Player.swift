@@ -70,6 +70,59 @@ final class Player {
         load()
     }
 
+    // MARK: Queue editing
+
+    /// Queues tracks after the current one, or starts them when nothing plays.
+    func playNext(_ tracks: [Track]) {
+        if current == nil {
+            play(tracks)
+        } else {
+            queue.insertNext(tracks)
+        }
+    }
+
+    /// Queues tracks at the end, or starts them when nothing plays.
+    func addToQueue(_ tracks: [Track]) {
+        if current == nil {
+            play(tracks)
+        } else {
+            queue.append(tracks)
+        }
+    }
+
+    func remove(_ id: PlayQueue.Entry.ID) {
+        let wasCurrent = queue.currentEntry?.id == id
+        if wasCurrent {
+            report(.stopped)
+        }
+        queue.remove(id)
+        guard wasCurrent else {
+            return
+        }
+        if current != nil {
+            load()
+        } else {
+            stop()
+        }
+    }
+
+    func moveUpcoming(fromOffsets source: IndexSet, toOffset destination: Int) {
+        queue.moveUpcoming(fromOffsets: source, toOffset: destination)
+    }
+
+    func jump(to id: PlayQueue.Entry.ID) {
+        report(.stopped)
+        if queue.jump(to: id) {
+            load()
+        }
+    }
+
+    func clearUpcoming() {
+        queue.clearUpcoming()
+    }
+
+    // MARK: Transport
+
     func togglePlayPause() {
         if isPlaying {
             pause()
