@@ -71,6 +71,9 @@ final class PlaybackUITests: XCTestCase {
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Pause")
         try skipToNext(app)
         try await Task.sleep(for: .seconds(4))
+        // Quit like a person would, so the app gets to send its stop report.
+        app.typeKey("q", modifierFlags: .command)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
     }
 
     /// The next track is buffered ahead, so the title must change almost at once.

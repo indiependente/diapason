@@ -73,11 +73,10 @@ final class Player {
             let ended = (notification.object as AnyObject?).map(ObjectIdentifier.init)
             Task { @MainActor in self?.trackEnded(ended) }
         }
-        // Tell the server the session ended, or it keeps showing the track as playing after quit.
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.report(.stopped) }
+            MainActor.assumeIsolated { self?.reportStoppedBeforeQuit() }
         }
     }
 
@@ -362,6 +361,21 @@ extension Player {
             return
         }
         nowPlaying.update(track: track, elapsed: currentTime, rate: isPlaying ? 1 : 0, artwork: artwork)
+    }
+
+    /// The process exits right after this returns, so the stop report has to finish here, or the
+    /// server keeps showing the track as playing. Two seconds is the most a quit may wait.
+    private func reportStoppedBeforeQuit() {
+        guard let track = current, let client = library.client else {
+            return
+        }
+        let position = currentTime
+        let done = DispatchSemaphore(value: 0)
+        Task.detached {
+            try? await client.report(.stopped, track: track, position: position, isPaused: true)
+            done.signal()
+        }
+        _ = done.wait(timeout: .now() + 2)
     }
 
     private func report(_ event: PlaybackEvent) {

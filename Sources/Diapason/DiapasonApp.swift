@@ -42,7 +42,9 @@ struct DiapasonApp: App {
             RootView(updater: updater)
                 .environment(library)
                 .environment(player)
-                .frame(minWidth: 900, minHeight: 600)
+                // Sidebar, detail, and the Up Next panel do not fit in 900 points; the window grows instead of
+                // squeezing.
+                .frame(minWidth: showQueue ? 1220 : 900, minHeight: 600)
         }
         .commands {
             CommandGroup(after: .appInfo) {

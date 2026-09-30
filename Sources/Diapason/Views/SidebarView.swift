@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @Environment(Library.self) private var library
+    @Environment(Player.self) private var player
     @Binding var selection: SidebarItem?
 
     var body: some View {
@@ -19,6 +20,17 @@ struct SidebarView: View {
                 }
             }
         }
+        .contextMenu(forSelectionType: SidebarItem.self) { items in
+            if case let .playlist(playlist)? = items.first {
+                Button("Play") { queue(playlist) { player.play($0) } }
+                Button("Play Next") { queue(playlist, player.playNext) }
+                Button("Add to Queue") { queue(playlist, player.addToQueue) }
+            }
+        } primaryAction: { items in
+            if case let .playlist(playlist)? = items.first {
+                queue(playlist) { player.play($0) }
+            }
+        }
         .navigationTitle("Diapason")
         .overlay(alignment: .bottom) {
             if let message = library.errorMessage {
@@ -26,6 +38,14 @@ struct SidebarView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
                     .padding(8)
+            }
+        }
+    }
+
+    private func queue(_ playlist: MusicCollection, _ action: @escaping @MainActor ([Track]) -> Void) {
+        Task {
+            if let tracks = try? await library.tracks(in: playlist) {
+                action(tracks)
             }
         }
     }
