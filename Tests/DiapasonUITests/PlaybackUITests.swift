@@ -17,6 +17,7 @@ final class PlaybackUITests: XCTestCase {
             throw XCTSkip("Set DIAPASON_TEST_SERVER, DIAPASON_TEST_USER and DIAPASON_TEST_PASSWORD.")
         }
         let app = XCUIApplication()
+        // Never add -ApplePersistenceIgnoreState here: on macOS 26 it stops SwiftUI from opening the window.
         app.launchArguments = ["-DiapasonFreshSession"]
         app.launch()
         signIn(app, server: server, user: user, password: password)
@@ -68,7 +69,19 @@ final class PlaybackUITests: XCTestCase {
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Play")
         app.buttons["playPauseButton"].click()
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Pause")
+        try skipToNext(app)
         try await Task.sleep(for: .seconds(4))
+    }
+
+    /// The next track is buffered ahead, so the title must change almost at once.
+    private func skipToNext(_ app: XCUIApplication) throws {
+        let title = app.staticTexts["nowPlayingTitle"]
+        let before = try XCTUnwrap(title.value as? String)
+        app.buttons["Next"].firstMatch.click()
+        let changed = NSPredicate(format: "value != %@", before)
+        let result = XCTWaiter().wait(for: [expectation(for: changed, evaluatedWith: title)], timeout: 3)
+        XCTAssertEqual(result, .completed, "still showing \(before)")
+        XCTAssertEqual(app.buttons["playPauseButton"].label, "Pause")
     }
 
     private func signIn(_ app: XCUIApplication, server: String, user: String, password: String) {

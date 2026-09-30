@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @main
@@ -15,6 +16,23 @@ struct DiapasonApp: App {
         let library = Library(store: store)
         _library = State(initialValue: library)
         _player = State(initialValue: Player(library: library))
+        Self.reopenIfWindowless()
+    }
+
+    /// Closing the window with Cmd+W and then quitting makes macOS restore "no windows" on the next
+    /// launch, and SwiftUI opens nothing. A reopen, the same request a Dock click sends, brings the
+    /// main window back. Two seconds is well past a normal launch, so it never races a real window.
+    private static func reopenIfWindowless() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            guard NSApp.windows.isEmpty else {
+                return
+            }
+            _ = try? await NSWorkspace.shared.openApplication(
+                at: Bundle.main.bundleURL,
+                configuration: NSWorkspace.OpenConfiguration()
+            )
+        }
     }
 
     var body: some Scene {
