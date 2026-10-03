@@ -7,7 +7,10 @@ on:
 
 jobs:
   test:
-    runs-on: macos-26
+    strategy:
+      matrix:
+        os: [macos-26, macos-26-intel]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - run: brew install xcodegen xcbeautify swiftlint swiftformat
