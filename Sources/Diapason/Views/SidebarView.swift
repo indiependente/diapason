@@ -13,6 +13,8 @@ struct SidebarView: View {
                     .tag(SidebarItem.albums)
                 Label("Artists", systemImage: "music.microphone")
                     .tag(SidebarItem.artists)
+                Label("Songs", systemImage: "music.note")
+                    .tag(SidebarItem.songs)
                 Label("Favorites", systemImage: "heart")
                     .tag(SidebarItem.favorites)
             }

@@ -53,6 +53,21 @@ final class PlaybackUITests: XCTestCase {
         screenshot(app, name: "album-artist")
     }
 
+    func testPlayAllSongs() throws {
+        let app = try launchSignedIn()
+        app.outlines["Sidebar"].staticTexts["Songs"].click()
+        // About 2,700 songs: the first load takes a few seconds.
+        XCTAssertTrue(
+            contentOutline(app).outlineRows.element(boundBy: 0).waitForExistence(timeout: 30),
+            app.debugDescription
+        )
+        XCTAssertTrue(app.staticTexts["Every song in your library"].exists, app.debugDescription)
+        app.buttons["collectionPlayButton"].firstMatch.click()
+        XCTAssertTrue(app.staticTexts["nowPlayingTitle"].waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertEqual(app.buttons["playPauseButton"].label, "Pause")
+        screenshot(app, name: "all-songs")
+    }
+
     func testSearch() throws {
         let app = try launchSignedIn()
         search(app, for: "shelter", expecting: "Pale Shelter")
@@ -101,7 +116,7 @@ final class PlaybackUITests: XCTestCase {
     /// Opens the first playlist in the sidebar and double-clicks its first track.
     private func playFirstPlaylistTrack(_ app: XCUIApplication) throws {
         // Section headers show up as static texts too, so skip every fixed label to reach a playlist.
-        let fixed: Set = ["Library", "Albums", "Artists", "Favorites", "Playlists"]
+        let fixed: Set = ["Library", "Albums", "Artists", "Songs", "Favorites", "Playlists"]
         let playlist = try XCTUnwrap(app.outlines["Sidebar"].staticTexts.allElementsBoundByIndex.first { text in
             !fixed.contains((text.value as? String) ?? text.label)
         })

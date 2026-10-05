@@ -8,6 +8,7 @@ struct TrackListView: View {
     @State private var tracks: [Track] = []
     @State private var selection: Set<Track.ID> = []
     @State private var errorMessage: String?
+    @State private var isLoading = false
 
     /// The Favorites list drops a song as soon as its heart is removed.
     private var shownTracks: [Track] {
@@ -75,8 +76,15 @@ struct TrackListView: View {
                 )
             }
         }
+        .overlay {
+            if isLoading {
+                ProgressView()
+            }
+        }
         .task(id: collection.id) {
             tracks = []
+            isLoading = true
+            defer { isLoading = false }
             do {
                 tracks = try await library.tracks(in: collection)
                 errorMessage = nil
@@ -89,10 +97,10 @@ struct TrackListView: View {
     private var header: some View {
         HStack(alignment: .bottom, spacing: 20) {
             Group {
-                if collection.kind == .favorites {
+                if let symbol = collection.kind.symbol {
                     ZStack {
                         RoundedRectangle(cornerRadius: 8).fill(.quaternary)
-                        Image(systemName: "heart.fill")
+                        Image(systemName: symbol)
                             .font(.system(size: 64))
                             .foregroundStyle(Color.accentColor)
                             .accessibilityHidden(true)
@@ -128,6 +136,7 @@ struct TrackListView: View {
                     .foregroundStyle(.secondary)
                 HStack {
                     Button("Play", systemImage: "play.fill") { player.play(shownTracks) }
+                        .accessibilityIdentifier("collectionPlayButton")
                         .buttonStyle(.borderedProminent)
                     Button("Shuffle", systemImage: "shuffle") {
                         player.isShuffled = true

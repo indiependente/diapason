@@ -27,6 +27,10 @@ struct RootView: View {
                             AlbumsView()
                         case .artists:
                             ArtistsView()
+                        case .songs:
+                            NavigationStack {
+                                TrackListView(collection: .allSongs)
+                            }
                         case .favorites:
                             NavigationStack {
                                 TrackListView(collection: .favorites)

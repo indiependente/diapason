@@ -7,9 +7,21 @@ struct MusicCollection: Identifiable, Hashable, Sendable, Decodable {
         case album = "MusicAlbum"
         /// Not a server item: the user's favorite songs.
         case favorites = "Favorites"
+        /// Not a server item: every song in the library.
+        case allSongs = "AllSongs"
+
+        /// The symbol that stands in for artwork on pages that are not server items.
+        var symbol: String? {
+            switch self {
+            case .favorites: "heart.fill"
+            case .allSongs: "music.note"
+            case .playlist, .album: nil
+            }
+        }
     }
 
     static let favorites = MusicCollection(id: "favorites", name: "Favorites", kind: .favorites)
+    static let allSongs = MusicCollection(id: "songs", name: "Songs", kind: .allSongs)
 
     let id: String
     let name: String
@@ -66,6 +78,7 @@ struct MusicCollection: Identifiable, Hashable, Sendable, Decodable {
         case .playlist: return "Playlist"
         case .album: return "Album"
         case .favorites: return "Songs you marked with a heart"
+        case .allSongs: return "Every song in your library"
         }
     }
 }

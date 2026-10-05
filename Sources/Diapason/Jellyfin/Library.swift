@@ -13,6 +13,8 @@ final class Library {
     private(set) var albums: [MusicCollection] = []
     private(set) var artists: [Artist] = []
     private(set) var favoriteIDs: Set<Track.ID> = []
+    /// The full song list takes seconds to load, so it is kept until the library refreshes.
+    private var allSongs: [Track]?
     private(set) var isLoading = false
     var errorMessage: String?
 
@@ -63,6 +65,7 @@ final class Library {
         albums = []
         artists = []
         favoriteIDs = []
+        allSongs = nil
     }
 
     func refresh() async {
@@ -71,6 +74,8 @@ final class Library {
         }
         isLoading = true
         defer { isLoading = false }
+        // A refresh always drops the cached song list, also when the requests below fail.
+        allSongs = nil
         do {
             async let playlists = client.playlists()
             async let albums = client.albums()
@@ -106,9 +111,14 @@ final class Library {
         guard let client else {
             throw JellyfinError.notSignedIn
         }
+        if collection.kind == .allSongs, let allSongs {
+            return allSongs
+        }
         let tracks = try await client.tracks(in: collection)
-        if collection.kind == .favorites {
-            favoriteIDs = Set(tracks.map(\.id))
+        switch collection.kind {
+        case .favorites: favoriteIDs = Set(tracks.map(\.id))
+        case .allSongs: allSongs = tracks
+        case .playlist, .album: break
         }
 
         return tracks

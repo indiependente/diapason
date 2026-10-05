@@ -102,6 +102,16 @@ struct JellyfinClient: Sendable, Equatable {
         }
     }
 
+    /// Every song, in artist, album, and track order, so that playing the list plays the library through.
+    func allTracks() async throws -> [Track] {
+        try await items([
+            "IncludeItemTypes": "Audio",
+            "Recursive": "true",
+            "SortBy": "AlbumArtist,Album,ParentIndexNumber,IndexNumber",
+            "Fields": "MediaSources"
+        ])
+    }
+
     func favoriteTracks() async throws -> [Track] {
         try await items([
             "IncludeItemTypes": "Audio",
@@ -125,6 +135,8 @@ struct JellyfinClient: Sendable, Equatable {
         switch collection.kind {
         case .favorites:
             try await favoriteTracks()
+        case .allSongs:
+            try await allTracks()
         case .playlist:
             try await items(path: "Playlists/\(collection.id)/Items", ["Fields": "MediaSources"])
         case .album:

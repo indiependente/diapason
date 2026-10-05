@@ -37,7 +37,7 @@ The `.xcodeproj` is generated and gitignored. Edit `project.yml`, then run `make
 ## Features
 
 - Sign in to a Jellyfin server. The session token is stored in `~/Library/Application Support/Diapason/credentials.json` with owner-only permissions. The Keychain is not used because an ad-hoc signed development build gets a new code signature on every rebuild, and the Keychain then asks for permission at every launch.
-- Browse albums, artists, and playlists, with artwork.
+- Browse albums, artists, songs, and playlists, with artwork. Songs lists the whole library, so Play or Shuffle there plays everything.
 - Large artwork: hover the cover in the player bar and click the chevron to show it as a big square at the bottom of the sidebar. The chevron on the big cover makes it small again.
 - Favorites: heart a song in any list or in the player bar, and browse them under Favorites in the sidebar.
 - Go to Album and Go to Artist from any song's context menu, from the player bar, and from the Controls menu.

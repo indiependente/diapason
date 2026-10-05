@@ -151,6 +151,26 @@ struct JellyfinClientTests {
         #expect(try await client.lyrics(for: Track(id: "t2", title: "x", artist: "y")).isEmpty)
     }
 
+    @Test("all songs are every audio item, sorted by artist, album, and track")
+    func allSongs() async throws {
+        StubURLProtocol.handler = { request in
+            let components = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }
+            let items = components?.queryItems ?? []
+            #expect(components?.path == "/Items")
+            #expect(items.contains(URLQueryItem(name: "IncludeItemTypes", value: "Audio")))
+            #expect(items.contains(URLQueryItem(name: "Recursive", value: "true")))
+            #expect(items.contains(URLQueryItem(
+                name: "SortBy",
+                value: "AlbumArtist,Album,ParentIndexNumber,IndexNumber"
+            )))
+            #expect(!items.contains { $0.name == "Filters" })
+
+            return (200, Data(#"{"Items":[{"Id":"t1","Name":"One"},{"Id":"t2","Name":"Two"}]}"#.utf8))
+        }
+        let tracks = try await client.tracks(in: .allSongs)
+        #expect(tracks.map(\.id) == ["t1", "t2"])
+    }
+
     @Test("track queries ask for media sources")
     func tracksRequestMediaSources() async throws {
         StubURLProtocol.handler = { request in
