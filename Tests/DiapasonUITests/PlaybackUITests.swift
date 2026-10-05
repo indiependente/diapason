@@ -73,6 +73,17 @@ final class PlaybackUITests: XCTestCase {
         search(app, for: "shelter", expecting: "Pale Shelter")
     }
 
+    func testSpaceInSearchDoesNotPause() throws {
+        let app = try launchSignedIn()
+        try playFirstPlaylistTrack(app)
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5), app.debugDescription)
+        field.click()
+        field.typeKey(.space, modifierFlags: [])
+        XCTAssertEqual(app.buttons["playPauseButton"].label, "Pause")
+        field.typeKey(.delete, modifierFlags: [])
+    }
+
     func testSidePanels() async throws {
         let app = try launchSignedIn()
         try playFirstPlaylistTrack(app)

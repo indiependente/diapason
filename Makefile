@@ -14,6 +14,8 @@ UNSIGNED_DMG_PATH := build/Diapason-unsigned.dmg
 XCODEBUILD_FLAGS ?=
 # Local settings for make test-e2e. Copy .env.example to .env.
 -include .env
+# Single-quotes a variable's raw value for the shell, so a "$" or a quote in a password reaches the tests unchanged.
+shell_quote = '$(subst ','\'',$(value $1))'
 
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister
 
@@ -48,11 +50,11 @@ test: gen
 # ONLY=PlaybackUITests/testSearch runs one test.
 test-e2e: gen
 	set -o pipefail && \
-	TEST_RUNNER_DIAPASON_TEST_SERVER="$(DIAPASON_TEST_SERVER)" \
-	TEST_RUNNER_DIAPASON_TEST_USER="$(DIAPASON_TEST_USER)" \
-	TEST_RUNNER_DIAPASON_TEST_PASSWORD="$(DIAPASON_TEST_PASSWORD)" \
-	TEST_RUNNER_DIAPASON_SCREENSHOT_DIR="$(DIAPASON_SCREENSHOT_DIR)" \
-	TEST_RUNNER_DIAPASON_SCREENSHOTS="$(DIAPASON_SCREENSHOTS)" \
+	TEST_RUNNER_DIAPASON_TEST_SERVER=$(call shell_quote,DIAPASON_TEST_SERVER) \
+	TEST_RUNNER_DIAPASON_TEST_USER=$(call shell_quote,DIAPASON_TEST_USER) \
+	TEST_RUNNER_DIAPASON_TEST_PASSWORD=$(call shell_quote,DIAPASON_TEST_PASSWORD) \
+	TEST_RUNNER_DIAPASON_SCREENSHOT_DIR=$(call shell_quote,DIAPASON_SCREENSHOT_DIR) \
+	TEST_RUNNER_DIAPASON_SCREENSHOTS=$(call shell_quote,DIAPASON_SCREENSHOTS) \
 	xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
