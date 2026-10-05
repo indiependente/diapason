@@ -12,53 +12,55 @@ struct RootView: View {
     var body: some View {
         @Bindable var navigation = navigation
         if library.isSignedIn {
-            NavigationSplitView(columnVisibility: $columns) {
-                SidebarView(selection: $navigation.selection)
-                    .navigationSplitViewColumnWidth(min: 200, ideal: 240)
-            } detail: {
-                if !navigation.query.isEmpty {
-                    SearchView(query: navigation.query)
-                } else {
-                    switch navigation.selection {
-                    case .albums, .none:
-                        AlbumsView()
-                    case .artists:
-                        ArtistsView()
-                    case .favorites:
-                        NavigationStack {
-                            TrackListView(collection: .favorites)
-                        }
-                    case let .playlist(playlist):
-                        NavigationStack {
-                            TrackListView(collection: playlist)
-                        }
-                    }
-                }
-            }
-            .searchable(text: $navigation.query, placement: .sidebar, prompt: "Search songs, albums, artists")
-            .inspector(isPresented: $sidePanel.isOpen) {
-                Group {
-                    if sidePanel == .lyrics {
-                        LyricsView()
+            // The player bar sits below the split view, not over it, so the sidebar and its large
+            // artwork end where the bar begins.
+            VStack(spacing: 0) {
+                NavigationSplitView(columnVisibility: $columns) {
+                    SidebarView(selection: $navigation.selection)
+                        .navigationSplitViewColumnWidth(min: 200, ideal: 240)
+                } detail: {
+                    if !navigation.query.isEmpty {
+                        SearchView(query: navigation.query)
                     } else {
-                        QueueView()
+                        switch navigation.selection {
+                        case .albums, .none:
+                            AlbumsView()
+                        case .artists:
+                            ArtistsView()
+                        case .favorites:
+                            NavigationStack {
+                                TrackListView(collection: .favorites)
+                            }
+                        case let .playlist(playlist):
+                            NavigationStack {
+                                TrackListView(collection: playlist)
+                            }
+                        }
                     }
                 }
-                .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
-            }
-            .toolbar {
-                ToolbarItemGroup(placement: .primaryAction) {
-                    Toggle(isOn: $sidePanel.showing(.lyrics)) {
-                        Label("Lyrics", systemImage: "music.microphone")
+                .searchable(text: $navigation.query, placement: .sidebar, prompt: "Search songs, albums, artists")
+                .inspector(isPresented: $sidePanel.isOpen) {
+                    Group {
+                        if sidePanel == .lyrics {
+                            LyricsView()
+                        } else {
+                            QueueView()
+                        }
                     }
-                    .accessibilityIdentifier("lyricsButton")
-                    Toggle(isOn: $sidePanel.showing(.queue)) {
-                        Label("Up Next", systemImage: "list.bullet")
-                    }
-                    .accessibilityIdentifier("queueButton")
+                    .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
                 }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+                .toolbar {
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        Toggle(isOn: $sidePanel.showing(.lyrics)) {
+                            Label("Lyrics", systemImage: "music.microphone")
+                        }
+                        .accessibilityIdentifier("lyricsButton")
+                        Toggle(isOn: $sidePanel.showing(.queue)) {
+                            Label("Up Next", systemImage: "list.bullet")
+                        }
+                        .accessibilityIdentifier("queueButton")
+                    }
+                }
                 PlayerBar()
             }
             .overlay(alignment: .bottomTrailing) {

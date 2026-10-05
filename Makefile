@@ -42,6 +42,7 @@ test: gen
 		| xcbeautify
 
 # Needs a reachable Jellyfin server: DIAPASON_TEST_SERVER, DIAPASON_TEST_USER, DIAPASON_TEST_PASSWORD.
+# ONLY=PlaybackUITests/testSearch runs one test.
 test-e2e: gen
 	set -o pipefail && \
 	TEST_RUNNER_DIAPASON_TEST_SERVER="$(DIAPASON_TEST_SERVER)" \
@@ -52,7 +53,7 @@ test-e2e: gen
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination '$(DESTINATION)' \
-		-only-testing:DiapasonUITests \
+		-only-testing:DiapasonUITests$(if $(ONLY),/$(ONLY)) \
 		| xcbeautify
 
 lint:

@@ -10,7 +10,60 @@ final class PlaybackUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testSignInAndPlayFirstPlaylistTrack() async throws {
+    // One test per feature. Run one while you work on it, for example:
+    //   make test-e2e ONLY=PlaybackUITests/testLargeArtwork
+    // Run the full suite once before you finish.
+
+    func testPlaybackReportsToServerAndQuits() async throws {
+        let app = try launchSignedIn()
+        try playFirstPlaylistTrack(app)
+        // Long enough for the server to receive the start report.
+        try await Task.sleep(for: .seconds(8))
+        screenshot(app, name: "playing")
+        pauseAndResume(app)
+        try skipToNext(app)
+        // Quit like a person would, so the app gets to send its stop report.
+        app.typeKey("q", modifierFlags: .command)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
+    }
+
+    func testBrowseArtists() throws {
+        let app = try launchSignedIn()
+        app.outlines["Sidebar"].staticTexts["Artists"].click()
+        XCTAssertTrue(
+            contentOutline(app).outlineRows.element(boundBy: 0).waitForExistence(timeout: 15),
+            app.debugDescription
+        )
+        screenshot(app, name: "artists")
+    }
+
+    func testSearch() throws {
+        let app = try launchSignedIn()
+        search(app, for: "shelter", expecting: "Pale Shelter")
+    }
+
+    func testSidePanels() async throws {
+        let app = try launchSignedIn()
+        try playFirstPlaylistTrack(app)
+        try await openSidePanels(app)
+    }
+
+    func testFavorite() throws {
+        let app = try launchSignedIn()
+        try playFirstPlaylistTrack(app)
+        toggleFavorite(app)
+    }
+
+    func testLargeArtwork() throws {
+        let app = try launchSignedIn()
+        try playFirstPlaylistTrack(app)
+        toggleLargeArtwork(app)
+    }
+
+    // MARK: Shared steps
+
+    /// Launches the app with an in-memory session and signs in through the UI.
+    private func launchSignedIn() throws -> XCUIApplication {
         guard let server = env["DIAPASON_TEST_SERVER"], !server.isEmpty,
               let user = env["DIAPASON_TEST_USER"], let password = env["DIAPASON_TEST_PASSWORD"]
         else {
@@ -21,70 +74,52 @@ final class PlaybackUITests: XCTestCase {
         app.launchArguments = ["-DiapasonFreshSession"]
         app.launch()
         signIn(app, server: server, user: user, password: password)
-
-        let albums = app.staticTexts["Albums"]
-        let signedIn = albums.waitForExistence(timeout: 15)
+        let signedIn = app.staticTexts["Albums"].waitForExistence(timeout: 15)
         screenshot(app, name: "albums")
         XCTAssertTrue(signedIn, app.debugDescription)
+        XCTAssertTrue(app.outlines["Sidebar"].waitForExistence(timeout: 5), app.debugDescription)
 
-        let sidebar = app.outlines["Sidebar"]
-        XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
-        sidebar.staticTexts["Artists"].click()
-        let artists = app.outlines.matching(NSPredicate(format: "label != 'Sidebar' AND identifier != 'queueList'"))
-            .firstMatch
-        XCTAssertTrue(artists.outlineRows.element(boundBy: 0).waitForExistence(timeout: 15), app.debugDescription)
-        screenshot(app, name: "artists")
+        return app
+    }
 
+    /// Opens the first playlist in the sidebar and double-clicks its first track.
+    private func playFirstPlaylistTrack(_ app: XCUIApplication) throws {
         // Section headers show up as static texts too, so skip every fixed label to reach a playlist.
         let fixed: Set = ["Library", "Albums", "Artists", "Favorites", "Playlists"]
-        let playlist = try XCTUnwrap(sidebar.staticTexts.allElementsBoundByIndex.first { text in
+        let playlist = try XCTUnwrap(app.outlines["Sidebar"].staticTexts.allElementsBoundByIndex.first { text in
             !fixed.contains((text.value as? String) ?? text.label)
         })
         playlist.click()
-
-        // SwiftUI's Table is an NSOutlineView underneath, like the sidebar, so skip the sidebar by label.
-        let table = app.outlines.matching(NSPredicate(format: "label != 'Sidebar' AND identifier != 'queueList'"))
-            .firstMatch
-        let firstRow = table.outlineRows.element(boundBy: 0)
+        let firstRow = contentOutline(app).outlineRows.element(boundBy: 0)
         XCTAssertTrue(firstRow.waitForExistence(timeout: 15), app.debugDescription)
         // Rows report themselves as not hittable, so click by coordinate.
         firstRow.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).doubleClick()
-
-        let title = app.staticTexts["nowPlayingTitle"]
-        XCTAssertTrue(title.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["nowPlayingTitle"].waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Pause")
-        // Long enough for the server to receive the start report and for a person to eyeball the run.
-        try await Task.sleep(for: .seconds(8))
-        screenshot(app, name: "playing")
+    }
 
-        try await openSidePanels(app)
-
-        pauseAndResume(app)
-        try skipToNext(app)
-        try await Task.sleep(for: .seconds(4))
-        search(app, for: "shelter", expecting: "Pale Shelter")
-        toggleFavorite(app)
-        // Quit like a person would, so the app gets to send its stop report.
-        app.typeKey("q", modifierFlags: .command)
-        XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
+    /// SwiftUI's List and Table are both outlines, so skip the sidebar and the Up Next list.
+    private func contentOutline(_ app: XCUIApplication) -> XCUIElement {
+        app.outlines.matching(NSPredicate(format: "label != 'Sidebar' AND identifier != 'queueList'")).firstMatch
     }
 
     /// Opens Up Next and then Lyrics, taking a screenshot of each, and closes the panel again.
+    /// The keyboard shortcuts work wherever macOS puts the window, also when the toolbar is off screen.
     private func openSidePanels(_ app: XCUIApplication) async throws {
         // The panel state persists between launches, so only open it when it is closed.
         if !app.outlines["queueList"].exists {
-            app.checkBoxes["queueButton"].firstMatch.click()
+            app.typeKey("u", modifierFlags: [.command, .shift])
         }
         XCTAssertTrue(app.staticTexts["Up Next"].waitForExistence(timeout: 5), app.debugDescription)
         screenshot(app, name: "queue")
-        app.checkBoxes["lyricsButton"].firstMatch.click()
+        app.typeKey("l", modifierFlags: [.command, .shift])
         XCTAssertTrue(
             app.descendants(matching: .any)["lyricsPanel"].firstMatch.waitForExistence(timeout: 5),
             app.debugDescription
         )
         try await Task.sleep(for: .seconds(3))
         screenshot(app, name: "lyrics")
-        app.checkBoxes["lyricsButton"].firstMatch.click()
+        app.typeKey("l", modifierFlags: [.command, .shift])
     }
 
     private func pauseAndResume(_ app: XCUIApplication) {
@@ -92,6 +127,21 @@ final class PlaybackUITests: XCTestCase {
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Play")
         app.buttons["playPauseButton"].click()
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Pause")
+    }
+
+    /// Moves the artwork into the sidebar and back with a click on the cover.
+    private func toggleLargeArtwork(_ app: XCUIApplication) {
+        let expand = app.descendants(matching: .any)["artworkExpandButton"].firstMatch
+        // The size persists between launches, so only expand when the cover is small.
+        if expand.waitForExistence(timeout: 3) {
+            expand.click()
+        }
+        let collapse = app.descendants(matching: .any)["artworkCollapseButton"].firstMatch
+        XCTAssertTrue(collapse.waitForExistence(timeout: 5), app.debugDescription)
+        collapse.hover()
+        screenshot(app, name: "large-artwork")
+        collapse.click()
+        XCTAssertTrue(expand.waitForExistence(timeout: 5), app.debugDescription)
     }
 
     /// Hearts the playing song from the player bar, then removes the heart again.

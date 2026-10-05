@@ -38,6 +38,7 @@ The `.xcodeproj` is generated and gitignored. Edit `project.yml`, then run `make
 
 - Sign in to a Jellyfin server. The session token is stored in `~/Library/Application Support/Diapason/credentials.json` with owner-only permissions. The Keychain is not used because an ad-hoc signed development build gets a new code signature on every rebuild, and the Keychain then asks for permission at every launch.
 - Browse albums, artists, and playlists, with artwork.
+- Large artwork: hover the cover in the player bar and click the chevron to show it as a big square at the bottom of the sidebar. The chevron on the big cover makes it small again.
 - Favorites: heart a song in any list or in the player bar, and browse them under Favorites in the sidebar.
 - Go to Album and Go to Artist from any song's context menu, from the player bar, and from the Controls menu.
 - Search the whole library from the sidebar: songs come from the server, artists and albums from the loaded lists.
@@ -54,7 +55,7 @@ FLAC, MP3, AAC, ALAC, WAV, and AIFF play directly. The server transcodes other f
 
 ## End-to-end test
 
-`make test-e2e` signs in through the UI, plays the first track of the first playlist, and checks that the server session shows the same track. It needs a reachable server:
+`make test-e2e` drives the real app against a Jellyfin server: sign-in, playback and the stop report on quit, artists, search, the side panels, favorites, and the large artwork. It needs a reachable server:
 
 ```sh
 DIAPASON_TEST_SERVER=http://192.168.0.14:8096 \
@@ -63,7 +64,7 @@ DIAPASON_TEST_PASSWORD="$(cat ~/jellyfin_pass.txt)" \
 make test-e2e
 ```
 
-Without these variables the test is skipped. The test launches the app with `-DiapasonFreshSession`, which keeps the session in memory, so your stored sign-in is not touched.
+Each feature has its own test. Add `ONLY=PlaybackUITests/testSearch` to run one of them. Without these variables the tests are skipped. The test launches the app with `-DiapasonFreshSession`, which keeps the session in memory, so your stored sign-in is not touched.
 
 ## Releases
 
@@ -91,7 +92,7 @@ Sources/Diapason/
   Player/     PlayQueue, Player (AVPlayer), NowPlaying (MediaPlayer bridge), RepeatMode
   Updates/    UpdaterController (Sparkle)
   Models/     Track and MediaInfo, MusicCollection, Artist, LyricLine, SidebarItem, Navigation
-  Views/      RootView, SidebarView, AlbumsView, ArtistsView, SearchView, TrackListView, QueueView, LyricsView, PlayerBar, SignInView, SettingsView
+  Views/      RootView, SidebarView, AlbumsView, ArtistsView, SearchView, TrackListView, QueueView, LyricsView, NowPlayingArtwork, PlayerBar, SignInView, SettingsView
 Tests/DiapasonTests/     unit tests (Swift Testing, ViewInspector)
 Tests/DiapasonUITests/   XCUITest end-to-end flow
 ```

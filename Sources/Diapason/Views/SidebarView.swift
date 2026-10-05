@@ -4,6 +4,7 @@ struct SidebarView: View {
     @Environment(Library.self) private var library
     @Environment(Player.self) private var player
     @Binding var selection: SidebarItem?
+    @AppStorage("largeArtwork") private var largeArtwork = false
 
     var body: some View {
         List(selection: $selection) {
@@ -34,6 +35,16 @@ struct SidebarView: View {
             }
         }
         .navigationTitle("Diapason")
+        // The large artwork sits at the bottom of the sidebar, right above the play and pause buttons.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if largeArtwork, player.current != nil {
+                NowPlayingArtwork(image: player.artwork, isLarge: true) {
+                    withAnimation { largeArtwork = false }
+                }
+                .padding(12)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
         .overlay(alignment: .bottom) {
             if let message = library.errorMessage {
                 Text(message)

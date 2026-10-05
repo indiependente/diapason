@@ -4,6 +4,7 @@ struct PlayerBar: View {
     @Environment(Library.self) private var library
     @Environment(Player.self) private var player
     @State private var scrubTime: TimeInterval?
+    @AppStorage("largeArtwork") private var largeArtwork = false
 
     var body: some View {
         @Bindable var player = player
@@ -75,17 +76,13 @@ struct PlayerBar: View {
     private var nowPlaying: some View {
         if let track = player.current {
             HStack(spacing: 12) {
-                Group {
-                    if let artwork = player.artwork {
-                        Image(nsImage: artwork)
-                            .resizable()
-                            .scaledToFill()
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                    } else {
-                        Artwork(url: nil, cornerRadius: 4)
+                if !largeArtwork {
+                    NowPlayingArtwork(image: player.artwork, isLarge: false) {
+                        withAnimation { largeArtwork = true }
                     }
+                    .frame(width: 48, height: 48)
+                    .transition(.opacity)
                 }
-                .frame(width: 48, height: 48)
                 VStack(spacing: 2) {
                     HStack(spacing: 6) {
                         Text(track.title)
