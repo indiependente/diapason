@@ -15,18 +15,33 @@ struct MusicCollection: Identifiable, Hashable, Sendable, Decodable {
     let name: String
     let kind: Kind
     let artist: String?
+    /// The first album artist. Nil for playlists and for albums without one.
+    let artistID: String?
     let year: Int?
     let hasArtwork: Bool
 
     private enum CodingKeys: CodingKey {
-        case id, name, type, albumArtist, productionYear, imageTags
+        case id, name, type, albumArtist, albumArtists, productionYear, imageTags
     }
 
-    init(id: String, name: String, kind: Kind, artist: String? = nil, year: Int? = nil, hasArtwork: Bool = false) {
+    private struct ArtistRef: Decodable {
+        let id: String
+    }
+
+    init(
+        id: String,
+        name: String,
+        kind: Kind,
+        artist: String? = nil,
+        artistID: String? = nil,
+        year: Int? = nil,
+        hasArtwork: Bool = false
+    ) {
         self.id = id
         self.name = name
         self.kind = kind
         self.artist = artist
+        self.artistID = artistID
         self.year = year
         self.hasArtwork = hasArtwork
     }
@@ -37,6 +52,7 @@ struct MusicCollection: Identifiable, Hashable, Sendable, Decodable {
         name = try container.decode(String.self, forKey: .name)
         kind = try container.decode(Kind.self, forKey: .type)
         artist = try container.decodeIfPresent(String.self, forKey: .albumArtist)
+        artistID = try container.decodeIfPresent([ArtistRef].self, forKey: .albumArtists)?.first?.id
         year = try container.decodeIfPresent(Int.self, forKey: .productionYear)
         let tags = try container.decodeIfPresent([String: String].self, forKey: .imageTags) ?? [:]
         hasArtwork = tags["Primary"] != nil

@@ -37,6 +37,22 @@ final class PlaybackUITests: XCTestCase {
         screenshot(app, name: "artists")
     }
 
+    func testAlbumArtistLink() throws {
+        let app = try launchSignedIn()
+        let album = app.buttons.matching(NSPredicate(format: "label CONTAINS 'But Seriously'")).firstMatch
+        XCTAssertTrue(album.waitForExistence(timeout: 15), app.debugDescription)
+        album.click()
+        let link = app.buttons["albumArtistLink"].firstMatch
+        XCTAssertTrue(link.waitForExistence(timeout: 10), app.debugDescription)
+        let artist = link.label
+        link.click()
+        // The artist page lists the artist's albums under the artist's name.
+        XCTAssertTrue(app.staticTexts[artist].firstMatch.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.outlines["Sidebar"].outlineRows.matching(NSPredicate(format: "selected == true"))
+            .staticTexts["Artists"].waitForExistence(timeout: 5), app.debugDescription)
+        screenshot(app, name: "album-artist")
+    }
+
     func testSearch() throws {
         let app = try launchSignedIn()
         search(app, for: "shelter", expecting: "Pale Shelter")
@@ -204,7 +220,12 @@ final class PlaybackUITests: XCTestCase {
         element.typeKey("v", modifierFlags: .command)
     }
 
+    /// Screenshots are diagnostics only. Set DIAPASON_SCREENSHOTS=0 when the runner cannot capture the screen,
+    /// so that a capture failure does not fail the test.
     private func screenshot(_ app: XCUIApplication, name: String) {
+        guard env["DIAPASON_SCREENSHOTS"] != "0" else {
+            return
+        }
         let shot = app.windows.firstMatch.screenshot()
         let attachment = XCTAttachment(screenshot: shot)
         attachment.name = name

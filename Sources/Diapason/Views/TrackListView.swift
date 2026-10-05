@@ -3,6 +3,7 @@ import SwiftUI
 struct TrackListView: View {
     @Environment(Library.self) private var library
     @Environment(Player.self) private var player
+    @Environment(Navigation.self) private var navigation
     let collection: MusicCollection
     @State private var tracks: [Track] = []
     @State private var selection: Set<Track.ID> = []
@@ -109,9 +110,19 @@ struct TrackListView: View {
                 Text(collection.name)
                     .font(.title.bold())
                     .lineLimit(2)
-                Text(collection.subtitle)
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                if let artist = library.artist(for: collection) {
+                    Button(collection.subtitle) { navigation.show(artist: artist) }
+                        .buttonStyle(.plain)
+                        .font(.title3)
+                        .foregroundStyle(Color.accentColor)
+                        .pointerStyle(.link)
+                        .help("Go to Artist")
+                        .accessibilityIdentifier("albumArtistLink")
+                } else {
+                    Text(collection.subtitle)
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
                 Text("\(shownTracks.count) songs, \(shownTracks.reduce(0) { $0 + $1.duration }.trackFormatted)")
                     .font(.caption)
                     .foregroundStyle(.secondary)

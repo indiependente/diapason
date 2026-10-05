@@ -162,6 +162,7 @@ final class Library {
             name: track.album,
             kind: .album,
             artist: track.artist,
+            artistID: track.artistID,
             hasArtwork: track.artworkItemID == albumID
         )
     }
@@ -172,6 +173,15 @@ final class Library {
         }
 
         return artists.first { $0.id == artistID } ?? Artist(id: artistID, name: track.artist)
+    }
+
+    /// The loaded artist when it is known, else one built from the album so navigation still works.
+    func artist(for album: MusicCollection) -> Artist? {
+        guard let artistID = album.artistID else {
+            return nil
+        }
+
+        return artists.first { $0.id == artistID } ?? Artist(id: artistID, name: album.artist ?? "")
     }
 
     func artworkURL(for itemID: String?, size: Int) -> URL? {

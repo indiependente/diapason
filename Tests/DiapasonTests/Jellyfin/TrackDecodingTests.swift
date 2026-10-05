@@ -64,6 +64,21 @@ struct TrackDecodingTests {
         #expect(collection.hasArtwork)
     }
 
+    @Test("decodes the album artist's ID from AlbumArtists")
+    func decodesAlbumArtistID() throws {
+        let json = """
+        {"Id":"a1","Name":"Currents","Type":"MusicAlbum","AlbumArtist":"Tame Impala",
+         "AlbumArtists":[{"Name":"Tame Impala","Id":"ar1"}]}
+        """
+        let album = try JSONDecoder.jellyfin.decode(MusicCollection.self, from: Data(json.utf8))
+        #expect(album.artistID == "ar1")
+        let playlist = try JSONDecoder.jellyfin.decode(
+            MusicCollection.self,
+            from: Data(#"{"Id":"p1","Name":"Mix","Type":"Playlist"}"#.utf8)
+        )
+        #expect(playlist.artistID == nil)
+    }
+
     @Test("decodes an artist")
     func decodesArtist() throws {
         let json = """

@@ -69,9 +69,18 @@ struct LibraryTests {
     func lookups() {
         let library = Library(store: InMemorySecretStore(), deviceID: "dev")
         let track = Track(id: "t1", title: "Song", artist: "Band", album: "Record", albumID: "a1", artistID: "ar1")
-        #expect(library.album(for: track) == MusicCollection(id: "a1", name: "Record", kind: .album, artist: "Band"))
+        let album = MusicCollection(id: "a1", name: "Record", kind: .album, artist: "Band", artistID: "ar1")
+        #expect(library.album(for: track) == album)
         #expect(library.artist(for: track) == Artist(id: "ar1", name: "Band"))
         #expect(library.album(for: Track(id: "t2", title: "x", artist: "y")) == nil)
+    }
+
+    @Test("artist(for album:) resolves the album artist, or nil without an artist ID")
+    func albumArtist() {
+        let library = Library(store: InMemorySecretStore(), deviceID: "dev")
+        let album = MusicCollection(id: "a1", name: "Currents", kind: .album, artist: "Tame Impala", artistID: "ar1")
+        #expect(library.artist(for: album) == Artist(id: "ar1", name: "Tame Impala"))
+        #expect(library.artist(for: MusicCollection(id: "p1", name: "Mix", kind: .playlist)) == nil)
     }
 
     @Test("rejects a server string without a host")
