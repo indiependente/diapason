@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct RootView: View {
@@ -73,7 +74,8 @@ struct RootView: View {
                     .padding(.bottom, 90)
             }
             .onKeyPress(.space) {
-                guard player.current != nil else {
+                // A text field being edited, such as search, needs the space itself.
+                guard player.current != nil, !(NSApp.keyWindow?.firstResponder is NSText) else {
                     return .ignored
                 }
                 player.togglePlayPause()
